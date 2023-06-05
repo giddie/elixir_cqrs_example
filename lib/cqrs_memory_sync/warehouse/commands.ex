@@ -14,4 +14,15 @@ defmodule CqrsMemorySync.Warehouse.Commands do
     }
     |> Messaging.dispatch_event()
   end
+
+  @spec ship_product_quantity(String.t(), pos_integer()) :: :ok | {:error, any()}
+  def ship_product_quantity(sku, quantity)
+      when is_binary(sku) and
+             is_integer(quantity) and quantity > 0 do
+    %Events.ProductQuantityShipped{
+      sku: sku,
+      quantity: quantity
+    }
+    |> Messaging.dispatch_event()
+  end
 end

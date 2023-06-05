@@ -9,6 +9,10 @@ defmodule CqrsMemorySync.Warehouse.Queries.Products.EventProcessor do
     Agent.adjust_quantity(event.sku, event.quantity)
   end
 
+  def handle_event(%Events.ProductQuantityShipped{} = event) do
+    Agent.adjust_quantity(event.sku, -event.quantity)
+  end
+
   def handle_event(_event) do
     :ok
   end

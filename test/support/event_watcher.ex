@@ -13,10 +13,15 @@ defmodule CqrsMemorySync.Test.EventWatcher do
     )
   end
 
-  @spec handle_event(struct()) :: :ok | {:error, any()}
+  @spec handle_event(struct()) :: :ok
   def handle_event(event) do
     :ok = Logger.info("Event: #{Kernel.inspect(event)}")
     :ok = store_event(event)
+  end
+
+  @spec reset() :: :ok
+  def reset() do
+    Agent.update(__MODULE__, fn _state -> [] end)
   end
 
   @spec store_event(struct()) :: :ok

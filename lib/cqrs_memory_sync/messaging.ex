@@ -8,6 +8,15 @@ defmodule CqrsMemorySync.Messaging do
                     |> Keyword.values()
                     |> Enum.concat()
 
+  @spec dispatch_events([struct()]) :: :ok
+  def dispatch_events(events) when is_list(events) do
+    for event <- events do
+      dispatch_event(event)
+    end
+
+    :ok
+  end
+
   @spec dispatch_event(struct()) :: :ok
   def dispatch_event(event) when is_struct(event) do
     for event_processor <- @event_processors do

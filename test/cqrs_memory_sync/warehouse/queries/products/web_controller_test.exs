@@ -15,11 +15,17 @@ defmodule CqrsMemorySync.Warehouse.Queries.Products.WebControllerTest do
   end
 
   test "index", %{conn: conn} do
-    %Events.ProductQuantityIncreased{
-      sku: "abc123",
-      quantity: 10
-    }
-    |> Messaging.dispatch_event()
+    [
+      %Events.ProductQuantityIncreased{
+        sku: "abc123",
+        quantity: 30
+      },
+      %Events.ProductQuantityShipped{
+        sku: "abc123",
+        quantity: 20
+      }
+    ]
+    |> Messaging.dispatch_events()
 
     conn = get(conn, ~p"/warehouse/products")
 

@@ -32,6 +32,7 @@ defmodule CqrsMemorySyncWeb.Router do
 
     scope "/products", Commands do
       post "/:sku/increase_quantity", WebController, :increase_quantity
+      post "/:sku/ship_quantity", WebController, :ship_quantity
     end
   end
 
