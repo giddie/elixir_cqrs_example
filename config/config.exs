@@ -26,6 +26,13 @@ config :cqrs_memory_sync, CqrsMemorySyncWeb.Endpoint,
 # at the `config/runtime.exs`.
 config :cqrs_memory_sync, CqrsMemorySync.Mailer, adapter: Swoosh.Adapters.Local
 
+config :cqrs_memory_sync, CqrsMemorySync.Messaging,
+  listeners: [
+    global: [
+      CqrsMemorySync.Warehouse.Queries.Products.EventProcessor
+    ]
+  ]
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.17.11",

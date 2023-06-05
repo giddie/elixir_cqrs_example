@@ -26,7 +26,13 @@ defmodule CqrsMemorySyncWeb.Router do
   # end
 
   scope "/warehouse", CqrsMemorySync.Warehouse do
-    get "/products", Queries.Products.WebController, :index
+    scope "/products", Queries.Products do
+      get "/", WebController, :index
+    end
+
+    scope "/products", Commands do
+      post "/:sku/increase_quantity", WebController, :increase_quantity
+    end
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
