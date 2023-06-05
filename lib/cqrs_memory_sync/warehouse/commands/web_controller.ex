@@ -1,6 +1,7 @@
 defmodule CqrsMemorySync.Warehouse.Commands.WebController do
   @moduledoc false
 
+  alias CqrsMemorySync.Messaging
   alias CqrsMemorySync.Warehouse.Commands
 
   use CqrsMemorySyncWeb, :controller
@@ -8,7 +9,8 @@ defmodule CqrsMemorySync.Warehouse.Commands.WebController do
   def increase_quantity(%Plug.Conn{} = conn, %{"sku" => sku, "quantity" => quantity})
       when is_binary(sku) and
              is_integer(quantity) and quantity > 0 do
-    :ok = Commands.increase_product_quantity(sku, quantity)
+    {:ok, events} = Commands.increase_product_quantity(sku, quantity)
+    :ok = Messaging.dispatch_events(events)
     resp(conn, 200, "")
   end
 
@@ -19,7 +21,8 @@ defmodule CqrsMemorySync.Warehouse.Commands.WebController do
   def ship_quantity(%Plug.Conn{} = conn, %{"sku" => sku, "quantity" => quantity})
       when is_binary(sku) and
              is_integer(quantity) and quantity > 0 do
-    :ok = Commands.ship_product_quantity(sku, quantity)
+    {:ok, events} = Commands.ship_product_quantity(sku, quantity)
+    :ok = Messaging.dispatch_events(events)
     resp(conn, 200, "")
   end
 
