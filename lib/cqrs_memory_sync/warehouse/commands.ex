@@ -4,13 +4,16 @@ defmodule CqrsMemorySync.Warehouse.Commands do
   alias CqrsMemorySync.Warehouse.Events
   alias CqrsMemorySync.Warehouse.Views
 
+  require Logger
+
   defmodule DomainConsistencyError do
     defexception [:message]
     @type t :: %__MODULE__{}
   end
 
-  @spec increase_product_quantity(String.t(), pos_integer()) ::
-          {:ok, [struct()]} | {:error, any()}
+  @type event :: struct()
+
+  @spec increase_product_quantity(String.t(), pos_integer()) :: {:ok, [event()]}
   def increase_product_quantity(sku, quantity)
       when is_binary(sku) and
              is_integer(quantity) and quantity > 0 do
@@ -23,7 +26,8 @@ defmodule CqrsMemorySync.Warehouse.Commands do
      ]}
   end
 
-  @spec ship_product_quantity(String.t(), pos_integer()) :: {:ok, [struct()]} | {:error, any()}
+  @spec ship_product_quantity(String.t(), pos_integer()) ::
+          {:ok, [event()]} | {:error, DomainConsistencyError.t()}
   def ship_product_quantity(sku, quantity)
       when is_binary(sku) and
              is_integer(quantity) and quantity > 0 do
@@ -40,5 +44,13 @@ defmodule CqrsMemorySync.Warehouse.Commands do
          }
        ]}
     end
+  end
+
+  @spec notify_low_product_quantity(String.t(), non_neg_integer()) :: {:ok, [event()]}
+  def notify_low_product_quantity(sku, quantity)
+      when is_binary(sku) and
+             is_integer(quantity) do
+    Logger.warn("Low quantity of product #{sku}! #{quantity} remaining.")
+    {:ok, [%Events.NotifiedLowProductQuantity{sku: sku}]}
   end
 end

@@ -3,11 +3,13 @@ defmodule CqrsMemorySync.Warehouse.Commands.WebControllerTest do
 
   alias CqrsMemorySync.Messaging
   alias CqrsMemorySync.Warehouse.Events
+  alias CqrsMemorySync.Warehouse.Processors
   alias CqrsMemorySync.Warehouse.Views
   alias CqrsMemorySync.Test.EventWatcher
 
   setup do
     EventWatcher.reset()
+    Processors.LowProductQuantityNotificationProcessor.reset()
     Views.Products.Agent.reset()
   end
 
@@ -51,7 +53,7 @@ defmodule CqrsMemorySync.Warehouse.Commands.WebControllerTest do
              EventWatcher.list_events()
   end
 
-  test "ship_quantity: just enough quantity", %{conn: conn} do
+  test "ship_quantity: all of the available quantity", %{conn: conn} do
     %Events.ProductQuantityIncreased{
       sku: "abc123",
       quantity: 10
@@ -63,11 +65,29 @@ defmodule CqrsMemorySync.Warehouse.Commands.WebControllerTest do
 
     assert [
              %Events.ProductQuantityIncreased{sku: "abc123", quantity: 10},
+             %Events.NotifiedLowProductQuantity{sku: "abc123"},
              %Events.ProductQuantityShipped{sku: "abc123", quantity: 10}
            ] = EventWatcher.list_events()
   end
 
-  test "ship_quantity", %{conn: conn} do
+  test "ship_quantity: not quite all, but enough to trigger a notification", %{conn: conn} do
+    %Events.ProductQuantityIncreased{
+      sku: "abc123",
+      quantity: 10
+    }
+    |> Messaging.dispatch_event()
+
+    conn = post(conn, ~p"/warehouse/products/abc123/ship_quantity", %{quantity: 5})
+    assert response(conn, 200) == ""
+
+    assert [
+             %Events.ProductQuantityIncreased{sku: "abc123", quantity: 10},
+             %Events.NotifiedLowProductQuantity{sku: "abc123"},
+             %Events.ProductQuantityShipped{sku: "abc123", quantity: 5}
+           ] = EventWatcher.list_events()
+  end
+
+  test "ship_quantity: not enough to trigger a notification", %{conn: conn} do
     %Events.ProductQuantityIncreased{
       sku: "abc123",
       quantity: 50

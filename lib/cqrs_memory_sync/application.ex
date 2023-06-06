@@ -17,7 +17,8 @@ defmodule CqrsMemorySync.Application do
         {Finch, name: CqrsMemorySync.Finch},
         # Start the Endpoint (http/https)
         CqrsMemorySyncWeb.Endpoint,
-        CqrsMemorySync.Warehouse.Views.Products.Agent
+        CqrsMemorySync.Warehouse.Views.Products.Agent,
+        CqrsMemorySync.Warehouse.Processors.LowProductQuantityNotificationProcessor
       ]
       |> concat_if(enable_test_event_watcher?(), [
         CqrsMemorySync.Test.EventWatcher
