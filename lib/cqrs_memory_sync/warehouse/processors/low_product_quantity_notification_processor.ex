@@ -15,11 +15,6 @@ defmodule CqrsMemorySync.Warehouse.Processors.LowProductQuantityNotificationProc
     )
   end
 
-  @spec reset() :: :ok
-  def reset() do
-    Agent.update(__MODULE__, fn _state -> %{} end)
-  end
-
   @spec handle_event(struct()) :: :ok | {:error, any()}
   def handle_event(%Events.ProductQuantityIncreased{} = event) do
     Agent.update(__MODULE__, fn %{} = state ->

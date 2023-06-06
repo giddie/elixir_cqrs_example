@@ -2,11 +2,10 @@ defmodule CqrsMemorySync.Warehouse.Views.Products.WebControllerTest do
   use CqrsMemorySyncWeb.ConnCase
 
   alias CqrsMemorySync.Messaging
-  alias CqrsMemorySync.Warehouse.Views.Products.Agent
   alias CqrsMemorySync.Warehouse.Events
 
   setup do
-    Agent.reset()
+    CqrsMemorySync.Application.reset_state()
   end
 
   test "index: no products", %{conn: conn} do

@@ -7,27 +7,32 @@ defmodule CqrsMemorySync.Application do
 
   @impl true
   def start(_type, _args) do
-    children =
-      [
-        # Start the Telemetry supervisor
-        CqrsMemorySyncWeb.Telemetry,
-        # Start the PubSub system
-        {Phoenix.PubSub, name: CqrsMemorySync.PubSub},
-        # Start Finch
-        {Finch, name: CqrsMemorySync.Finch},
-        # Start the Endpoint (http/https)
-        CqrsMemorySyncWeb.Endpoint,
-        CqrsMemorySync.Warehouse.Views.Products.Agent,
-        CqrsMemorySync.Warehouse.Processors.LowProductQuantityNotificationProcessor
-      ]
-      |> concat_if(enable_test_event_watcher?(), [
-        CqrsMemorySync.Test.EventWatcher
-      ])
+    children = [
+      # Start the Telemetry supervisor
+      CqrsMemorySyncWeb.Telemetry,
+      # Start the PubSub system
+      {Phoenix.PubSub, name: CqrsMemorySync.PubSub},
+      # Start Finch
+      {Finch, name: CqrsMemorySync.Finch},
+      # Start the Endpoint (http/https)
+      CqrsMemorySyncWeb.Endpoint,
+      CqrsMemorySync.StateSupervisor
+    ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: CqrsMemorySync.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  @spec reset_state() :: :ok
+  def reset_state() do
+    :ok = Supervisor.terminate_child(CqrsMemorySync.Supervisor, CqrsMemorySync.StateSupervisor)
+
+    {:ok, _pid} =
+      Supervisor.restart_child(CqrsMemorySync.Supervisor, CqrsMemorySync.StateSupervisor)
+
+    :ok
   end
 
   # Tell Phoenix to update the endpoint configuration
@@ -36,23 +41,5 @@ defmodule CqrsMemorySync.Application do
   def config_change(changed, _new, removed) do
     CqrsMemorySyncWeb.Endpoint.config_change(changed, removed)
     :ok
-  end
-
-  @spec enable_test_event_watcher?() :: boolean()
-  defp enable_test_event_watcher?() do
-    Application.get_env(:cqrs_memory_sync, __MODULE__, [])
-    |> Keyword.get(:enable_test_event_watcher, false)
-  end
-
-  @spec concat_if(list(), boolean(), list()) :: list()
-  defp concat_if(list, condition, additional_list)
-       when is_list(list) and
-              is_boolean(condition) and
-              is_list(additional_list) do
-    if condition do
-      list ++ additional_list
-    else
-      list
-    end
   end
 end

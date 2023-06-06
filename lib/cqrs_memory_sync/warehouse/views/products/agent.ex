@@ -15,14 +15,6 @@ defmodule CqrsMemorySync.Warehouse.Views.Products.Agent do
     )
   end
 
-  @spec reset() :: :ok
-  def reset() do
-    Agent.update(
-      __MODULE__,
-      fn _state -> %{} end
-    )
-  end
-
   @spec list() :: [%{sku: String.t(), quantity: non_neg_integer()}]
   def list() do
     Agent.get(__MODULE__, & &1)

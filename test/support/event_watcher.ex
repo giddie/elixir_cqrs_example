@@ -19,11 +19,6 @@ defmodule CqrsMemorySync.Test.EventWatcher do
     :ok = store_event(event)
   end
 
-  @spec reset() :: :ok
-  def reset() do
-    Agent.update(__MODULE__, fn _state -> [] end)
-  end
-
   @spec store_event(struct()) :: :ok
   def store_event(event) when is_struct(event) do
     Agent.update(

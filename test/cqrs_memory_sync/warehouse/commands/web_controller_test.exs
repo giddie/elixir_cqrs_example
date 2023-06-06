@@ -3,14 +3,10 @@ defmodule CqrsMemorySync.Warehouse.Commands.WebControllerTest do
 
   alias CqrsMemorySync.Messaging
   alias CqrsMemorySync.Warehouse.Events
-  alias CqrsMemorySync.Warehouse.Processors
-  alias CqrsMemorySync.Warehouse.Views
   alias CqrsMemorySync.Test.EventWatcher
 
   setup do
-    EventWatcher.reset()
-    Processors.LowProductQuantityNotificationProcessor.reset()
-    Views.Products.Agent.reset()
+    CqrsMemorySync.Application.reset_state()
   end
 
   test "increase_quantity: bad params", %{conn: conn} do

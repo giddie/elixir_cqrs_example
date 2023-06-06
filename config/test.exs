@@ -1,6 +1,6 @@
 import Config
 
-config :cqrs_memory_sync, CqrsMemorySync.Application, enable_test_event_watcher: true
+config :cqrs_memory_sync, CqrsMemorySync.StateSupervisor, enable_test_event_watcher: true
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
