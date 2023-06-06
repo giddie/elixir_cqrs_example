@@ -2,6 +2,12 @@ defmodule CqrsMemorySync.Warehouse.Commands do
   @moduledoc false
 
   alias CqrsMemorySync.Warehouse.Events
+  alias CqrsMemorySync.Warehouse.Queries
+
+  defmodule DomainConsistencyError do
+    defexception [:message]
+    @type t :: %__MODULE__{}
+  end
 
   @spec increase_product_quantity(String.t(), pos_integer()) ::
           {:ok, [struct()]} | {:error, any()}
@@ -21,12 +27,18 @@ defmodule CqrsMemorySync.Warehouse.Commands do
   def ship_product_quantity(sku, quantity)
       when is_binary(sku) and
              is_integer(quantity) and quantity > 0 do
-    {:ok,
-     [
-       %Events.ProductQuantityShipped{
-         sku: sku,
-         quantity: quantity
-       }
-     ]}
+    quantity_on_hand = Queries.Products.Agent.get_quantity(sku)
+
+    if quantity > quantity_on_hand do
+      {:error, %DomainConsistencyError{message: "Insufficient quantity on hand."}}
+    else
+      {:ok,
+       [
+         %Events.ProductQuantityShipped{
+           sku: sku,
+           quantity: quantity
+         }
+       ]}
+    end
   end
 end

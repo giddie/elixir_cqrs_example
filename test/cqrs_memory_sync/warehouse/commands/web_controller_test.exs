@@ -3,10 +3,12 @@ defmodule CqrsMemorySync.Warehouse.Commands.WebControllerTest do
 
   alias CqrsMemorySync.Messaging
   alias CqrsMemorySync.Warehouse.Events
+  alias CqrsMemorySync.Warehouse.Queries
   alias CqrsMemorySync.Test.EventWatcher
 
   setup do
     EventWatcher.reset()
+    Queries.Products.Agent.reset()
   end
 
   test "increase_quantity: bad params", %{conn: conn} do
@@ -26,6 +28,43 @@ defmodule CqrsMemorySync.Warehouse.Commands.WebControllerTest do
 
     assert [%Events.ProductQuantityIncreased{sku: "abc123", quantity: 50}] =
              EventWatcher.list_events()
+  end
+
+  test "ship_quantity: unknown product", %{conn: conn} do
+    conn = post(conn, ~p"/warehouse/products/abc123/ship_quantity", %{quantity: 40})
+    assert response(conn, 400) == "Insufficient quantity on hand."
+
+    assert [] = EventWatcher.list_events()
+  end
+
+  test "ship_quantity: insufficient quantity", %{conn: conn} do
+    %Events.ProductQuantityIncreased{
+      sku: "abc123",
+      quantity: 10
+    }
+    |> Messaging.dispatch_event()
+
+    conn = post(conn, ~p"/warehouse/products/abc123/ship_quantity", %{quantity: 11})
+    assert response(conn, 400) == "Insufficient quantity on hand."
+
+    assert [%Events.ProductQuantityIncreased{sku: "abc123", quantity: 10}] =
+             EventWatcher.list_events()
+  end
+
+  test "ship_quantity: just enough quantity", %{conn: conn} do
+    %Events.ProductQuantityIncreased{
+      sku: "abc123",
+      quantity: 10
+    }
+    |> Messaging.dispatch_event()
+
+    conn = post(conn, ~p"/warehouse/products/abc123/ship_quantity", %{quantity: 10})
+    assert response(conn, 200) == ""
+
+    assert [
+             %Events.ProductQuantityIncreased{sku: "abc123", quantity: 10},
+             %Events.ProductQuantityShipped{sku: "abc123", quantity: 10}
+           ] = EventWatcher.list_events()
   end
 
   test "ship_quantity", %{conn: conn} do

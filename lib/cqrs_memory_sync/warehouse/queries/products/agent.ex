@@ -31,12 +31,13 @@ defmodule CqrsMemorySync.Warehouse.Queries.Products.Agent do
     end)
   end
 
-  @spec get(String.t()) :: entry()
-  def get(sku) when is_binary(sku) do
+  @spec get_quantity(String.t()) :: non_neg_integer()
+  def get_quantity(sku) when is_binary(sku) do
     Agent.get(
       __MODULE__,
       &Map.get(&1, sku, @new_entry)
     )
+    |> Map.fetch!(:quantity)
   end
 
   @spec adjust_quantity(String.t(), integer()) :: :ok
