@@ -29,7 +29,7 @@ config :cqrs_memory_sync, CqrsMemorySync.Mailer, adapter: Swoosh.Adapters.Local
 config :cqrs_memory_sync, CqrsMemorySync.Messaging,
   listeners: [
     global: [
-      CqrsMemorySync.Warehouse.Queries.Products.EventProcessor
+      CqrsMemorySync.Warehouse.Views.Products.EventProcessor
     ]
   ]
 

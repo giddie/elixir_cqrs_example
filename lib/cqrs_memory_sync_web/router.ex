@@ -26,7 +26,7 @@ defmodule CqrsMemorySyncWeb.Router do
   # end
 
   scope "/warehouse", CqrsMemorySync.Warehouse do
-    scope "/products", Queries.Products do
+    scope "/products", Views.Products do
       get "/", WebController, :index
     end
 

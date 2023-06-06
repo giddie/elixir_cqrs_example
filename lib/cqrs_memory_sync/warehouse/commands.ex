@@ -2,7 +2,7 @@ defmodule CqrsMemorySync.Warehouse.Commands do
   @moduledoc false
 
   alias CqrsMemorySync.Warehouse.Events
-  alias CqrsMemorySync.Warehouse.Queries
+  alias CqrsMemorySync.Warehouse.Views
 
   defmodule DomainConsistencyError do
     defexception [:message]
@@ -27,7 +27,7 @@ defmodule CqrsMemorySync.Warehouse.Commands do
   def ship_product_quantity(sku, quantity)
       when is_binary(sku) and
              is_integer(quantity) and quantity > 0 do
-    quantity_on_hand = Queries.Products.Agent.get_quantity(sku)
+    quantity_on_hand = Views.Products.Agent.get_quantity(sku)
 
     if quantity > quantity_on_hand do
       {:error, %DomainConsistencyError{message: "Insufficient quantity on hand."}}

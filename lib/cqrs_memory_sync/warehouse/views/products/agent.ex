@@ -1,4 +1,4 @@
-defmodule CqrsMemorySync.Warehouse.Queries.Products.Agent do
+defmodule CqrsMemorySync.Warehouse.Views.Products.Agent do
   @moduledoc false
 
   use Agent

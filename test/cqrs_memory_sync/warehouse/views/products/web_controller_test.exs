@@ -1,8 +1,8 @@
-defmodule CqrsMemorySync.Warehouse.Queries.Products.WebControllerTest do
+defmodule CqrsMemorySync.Warehouse.Views.Products.WebControllerTest do
   use CqrsMemorySyncWeb.ConnCase
 
   alias CqrsMemorySync.Messaging
-  alias CqrsMemorySync.Warehouse.Queries.Products.Agent
+  alias CqrsMemorySync.Warehouse.Views.Products.Agent
   alias CqrsMemorySync.Warehouse.Events
 
   setup do

@@ -1,8 +1,8 @@
-defmodule CqrsMemorySync.Warehouse.Queries.Products.EventProcessor do
+defmodule CqrsMemorySync.Warehouse.Views.Products.EventProcessor do
   @moduledoc false
 
   alias CqrsMemorySync.Warehouse.Events
-  alias CqrsMemorySync.Warehouse.Queries.Products.Agent
+  alias CqrsMemorySync.Warehouse.Views.Products.Agent
 
   @spec handle_event(struct()) :: :ok | {:error, any()}
   def handle_event(%Events.ProductQuantityIncreased{} = event) do
