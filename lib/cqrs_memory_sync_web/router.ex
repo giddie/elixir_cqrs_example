@@ -12,6 +12,10 @@ defmodule CqrsMemorySyncWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+
+    plug Plug.Parsers,
+      parsers: [:urlencoded, :json],
+      json_decoder: Jason
   end
 
   scope "/", CqrsMemorySyncWeb do
@@ -26,6 +30,8 @@ defmodule CqrsMemorySyncWeb.Router do
   # end
 
   scope "/warehouse", CqrsMemorySync.Warehouse do
+    pipe_through :api
+
     scope "/products", Views.Products do
       get "/", WebController, :index
     end
