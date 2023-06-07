@@ -8,13 +8,13 @@
 import Config
 
 # Configures the endpoint
-config :cqrs_memory_sync, CqrsMemorySyncWeb.Endpoint,
+config :cqrs_example, CqrsExampleWeb.Endpoint,
   url: [host: "localhost"],
   render_errors: [
-    formats: [html: CqrsMemorySyncWeb.ErrorHTML, json: CqrsMemorySyncWeb.ErrorJSON],
+    formats: [html: CqrsExampleWeb.ErrorHTML, json: CqrsExampleWeb.ErrorJSON],
     layout: false
   ],
-  pubsub_server: CqrsMemorySync.PubSub,
+  pubsub_server: CqrsExample.PubSub,
   live_view: [signing_salt: "2bl1F+r+"]
 
 # Configures the mailer
@@ -24,13 +24,13 @@ config :cqrs_memory_sync, CqrsMemorySyncWeb.Endpoint,
 #
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
-config :cqrs_memory_sync, CqrsMemorySync.Mailer, adapter: Swoosh.Adapters.Local
+config :cqrs_example, CqrsExample.Mailer, adapter: Swoosh.Adapters.Local
 
-config :cqrs_memory_sync, CqrsMemorySync.Messaging,
+config :cqrs_example, CqrsExample.Messaging,
   listeners: [
     global: [
-      CqrsMemorySync.Warehouse.Processors.LowProductQuantityNotificationProcessor,
-      CqrsMemorySync.Warehouse.Views.Products.EventProcessor
+      CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcessor,
+      CqrsExample.Warehouse.Views.Products.EventProcessor
     ]
   ]
 

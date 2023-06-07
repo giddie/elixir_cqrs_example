@@ -1,4 +1,4 @@
-defmodule CqrsMemorySync.Test.EventWatcher do
+defmodule CqrsExample.Test.EventWatcher do
   @moduledoc false
 
   require Logger

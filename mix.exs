@@ -1,9 +1,9 @@
-defmodule CqrsMemorySync.MixProject do
+defmodule CqrsExample.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :cqrs_memory_sync,
+      app: :cqrs_example,
       version: "0.1.0",
       elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -18,7 +18,7 @@ defmodule CqrsMemorySync.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {CqrsMemorySync.Application, []},
+      mod: {CqrsExample.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end
