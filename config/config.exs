@@ -7,6 +7,8 @@
 # General application configuration
 import Config
 
+config :cqrs_example, ecto_repos: [CqrsExample.Repo]
+
 # Configures the endpoint
 config :cqrs_example, CqrsExampleWeb.Endpoint,
   url: [host: "localhost"],

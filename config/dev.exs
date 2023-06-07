@@ -1,5 +1,11 @@
 import Config
 
+config :cqrs_example, CqrsExample.Repo,
+  database: "cqrs_example",
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost"
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

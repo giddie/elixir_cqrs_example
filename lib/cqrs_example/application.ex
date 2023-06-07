@@ -12,6 +12,7 @@ defmodule CqrsExample.Application do
       CqrsExampleWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: CqrsExample.PubSub},
+      CqrsExample.Repo,
       # Start Finch
       {Finch, name: CqrsExample.Finch},
       # Start the Endpoint (http/https)
