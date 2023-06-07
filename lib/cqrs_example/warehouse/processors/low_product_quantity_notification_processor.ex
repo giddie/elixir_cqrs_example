@@ -1,16 +1,26 @@
 defmodule CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcessor do
   @moduledoc false
 
-  alias CqrsExample.Warehouse.Events
   alias CqrsExample.Warehouse.Commands
+  alias CqrsExample.Warehouse.Events
+  alias CqrsExample.Warehouse.Views
   alias CqrsExample.Messaging
 
   use Agent
 
   @spec start_link(any()) :: Agent.on_start()
   def start_link(_initial_value) do
+    state =
+      Views.Products.list()
+      |> Enum.into(
+        %{},
+        fn %Views.Products.Product{} = product ->
+          {product.sku, product.quantity}
+        end
+      )
+
     Agent.start_link(
-      fn -> %{} end,
+      fn -> state end,
       name: __MODULE__
     )
   end

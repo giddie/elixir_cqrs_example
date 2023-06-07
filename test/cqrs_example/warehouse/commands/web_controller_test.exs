@@ -106,4 +106,27 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
              %Events.ProductQuantityShipped{sku: "abc123", quantity: 40}
            ] = EventWatcher.list_events()
   end
+
+  test "ship_quantity: state reset + not enough to trigger a notification", %{conn: conn} do
+    [
+      %Events.ProductQuantityIncreased{
+        sku: "abc123",
+        quantity: 50
+      }
+    ]
+    |> Messaging.dispatch_events()
+
+    # Resetting the state could affect the detection of low product quantity. If, after a state
+    # reset, the system were to assume the quantity was 0, we'd receive a notification when trying
+    # to ship.
+    CqrsExample.Application.reset_state()
+
+    conn = post(conn, ~p"/warehouse/products/abc123/ship_quantity", %{quantity: 40})
+    assert response(conn, 200) == ""
+
+    # Note that the first event is missing here due to the state reset.
+    assert [
+             %Events.ProductQuantityShipped{sku: "abc123", quantity: 40}
+           ] = EventWatcher.list_events()
+  end
 end

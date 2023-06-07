@@ -19,7 +19,7 @@ defmodule CqrsExample.StateSupervisor do
         CqrsExample.Test.EventWatcher
       ])
 
-    Supervisor.init(children, strategy: :one_for_all)
+    Supervisor.init(children, strategy: :one_for_one)
   end
 
   @spec enable_test_event_processors?() :: boolean()
