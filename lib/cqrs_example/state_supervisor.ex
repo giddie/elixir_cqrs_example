@@ -12,7 +12,6 @@ defmodule CqrsExample.StateSupervisor do
   def init(_init_arg) do
     children =
       [
-        CqrsExample.Warehouse.Views.Products.Agent,
         CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcessor
       ]
       |> concat_if(enable_test_event_processors?(), [

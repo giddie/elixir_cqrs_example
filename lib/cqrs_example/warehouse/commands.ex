@@ -31,7 +31,7 @@ defmodule CqrsExample.Warehouse.Commands do
   def ship_product_quantity(sku, quantity)
       when is_binary(sku) and
              is_integer(quantity) and quantity > 0 do
-    quantity_on_hand = Views.Products.Agent.get_quantity(sku)
+    quantity_on_hand = Views.Products.get_quantity(sku)
 
     if quantity > quantity_on_hand do
       {:error, %DomainConsistencyError{message: "Insufficient quantity on hand."}}
