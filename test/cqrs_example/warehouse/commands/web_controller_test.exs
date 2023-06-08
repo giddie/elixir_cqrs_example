@@ -36,11 +36,13 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
   end
 
   test "ship_quantity: insufficient quantity", %{conn: conn} do
-    %Events.ProductQuantityIncreased{
-      sku: "abc123",
-      quantity: 10
-    }
-    |> Messaging.dispatch_event()
+    [
+      %Events.ProductQuantityIncreased{
+        sku: "abc123",
+        quantity: 10
+      }
+    ]
+    |> Messaging.dispatch_events()
 
     conn = post(conn, ~p"/warehouse/products/abc123/ship_quantity", %{quantity: 11})
     assert response(conn, 400) == "Insufficient quantity on hand."
@@ -50,11 +52,13 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
   end
 
   test "ship_quantity: all of the available quantity", %{conn: conn} do
-    %Events.ProductQuantityIncreased{
-      sku: "abc123",
-      quantity: 10
-    }
-    |> Messaging.dispatch_event()
+    [
+      %Events.ProductQuantityIncreased{
+        sku: "abc123",
+        quantity: 10
+      }
+    ]
+    |> Messaging.dispatch_events()
 
     conn = post(conn, ~p"/warehouse/products/abc123/ship_quantity", %{quantity: 10})
     assert response(conn, 200) == ""
@@ -67,11 +71,13 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
   end
 
   test "ship_quantity: not quite all, but enough to trigger a notification", %{conn: conn} do
-    %Events.ProductQuantityIncreased{
-      sku: "abc123",
-      quantity: 10
-    }
-    |> Messaging.dispatch_event()
+    [
+      %Events.ProductQuantityIncreased{
+        sku: "abc123",
+        quantity: 10
+      }
+    ]
+    |> Messaging.dispatch_events()
 
     conn = post(conn, ~p"/warehouse/products/abc123/ship_quantity", %{quantity: 5})
     assert response(conn, 200) == ""
@@ -84,11 +90,13 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
   end
 
   test "ship_quantity: not enough to trigger a notification", %{conn: conn} do
-    %Events.ProductQuantityIncreased{
-      sku: "abc123",
-      quantity: 50
-    }
-    |> Messaging.dispatch_event()
+    [
+      %Events.ProductQuantityIncreased{
+        sku: "abc123",
+        quantity: 50
+      }
+    ]
+    |> Messaging.dispatch_events()
 
     conn = post(conn, ~p"/warehouse/products/abc123/ship_quantity", %{quantity: 40})
     assert response(conn, 200) == ""

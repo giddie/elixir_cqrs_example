@@ -15,17 +15,18 @@ defmodule CqrsExample.StateSupervisor do
         CqrsExample.Warehouse.Views.Products.Agent,
         CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcessor
       ]
-      |> concat_if(enable_test_event_watcher?(), [
+      |> concat_if(enable_test_event_processors?(), [
+        CqrsExample.Test.EventProcessor,
         CqrsExample.Test.EventWatcher
       ])
 
     Supervisor.init(children, strategy: :one_for_all)
   end
 
-  @spec enable_test_event_watcher?() :: boolean()
-  defp enable_test_event_watcher?() do
+  @spec enable_test_event_processors?() :: boolean()
+  defp enable_test_event_processors?() do
     Application.get_env(:cqrs_example, __MODULE__, [])
-    |> Keyword.get(:enable_test_event_watcher, false)
+    |> Keyword.get(:enable_test_event_processors, false)
   end
 
   @spec concat_if(list(), boolean(), list()) :: list()

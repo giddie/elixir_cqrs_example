@@ -8,18 +8,13 @@ defmodule CqrsExample.Messaging do
                     |> Keyword.values()
                     |> Enum.concat()
 
+  # NOTE: Dispatching events is not atomic. Depending on requirements, this may be a serious
+  # concern, since a failure in any event handler will result in a potentially inconsistent
+  # application state. For an in-memory solution, it may be necessary to use Mnesia or another
+  # in-memory database with transaction functionality.
   @spec dispatch_events([struct()]) :: :ok
   def dispatch_events(events) when is_list(events) do
-    for event <- events do
-      dispatch_event(event)
-    end
-
-    :ok
-  end
-
-  @spec dispatch_event(struct()) :: :ok
-  def dispatch_event(event) when is_struct(event) do
-    for event_processor <- @event_processors do
+    for event <- events, event_processor <- @event_processors do
       try do
         :ok = event_processor.handle_event(event)
       rescue

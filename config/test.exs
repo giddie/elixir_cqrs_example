@@ -1,6 +1,6 @@
 import Config
 
-config :cqrs_example, CqrsExample.StateSupervisor, enable_test_event_watcher: true
+config :cqrs_example, CqrsExample.StateSupervisor, enable_test_event_processors: true
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
@@ -15,6 +15,7 @@ config :cqrs_example, CqrsExample.Mailer, adapter: Swoosh.Adapters.Test
 config :cqrs_example, CqrsExample.Messaging,
   listeners: [
     environment_specific: [
+      CqrsExample.Test.EventProcessor,
       CqrsExample.Test.EventWatcher
     ]
   ]
