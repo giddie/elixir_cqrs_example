@@ -8,7 +8,7 @@ defmodule CqrsExample.MessagingTest do
   alias CqrsExample.Test.EventProcessor
   alias CqrsExample.Test.EventWatcher
 
-  use ExUnit.Case, async: false
+  use CqrsExample.DataCase, async: false
 
   defmodule ExampleEvent do
     @moduledoc false
@@ -25,22 +25,24 @@ defmodule CqrsExample.MessagingTest do
     assert [%ExampleEvent{}] = EventWatcher.list_events()
   end
 
-  @tag :skip
   test "dispatch_event: failing event handler" do
-    # NOTE: Events should be processed atomically across all handlers, ensuring a consistent state
-    # if one of the handlers fails. This test shows that this issue is not yet handled in this
-    # implementation.
+    # Events should be processed atomically across all handlers, ensuring a consistent state if
+    # one of the handlers fails.
 
     :ok = EventProcessor.fail_next_event()
 
-    [
-      %Events.ProductQuantityIncreased{
-        sku: "abc123",
-        quantity: 30
-      }
-    ]
-    |> Messaging.dispatch_events()
+    try do
+      [
+        %Events.ProductQuantityIncreased{
+          sku: "abc123",
+          quantity: 30
+        }
+      ]
+      |> Messaging.dispatch_events()
+    rescue
+      _e -> :ok
+    end
 
-    assert [] = Views.Products.Agent.list()
+    assert [] = Views.Products.list()
   end
 end
