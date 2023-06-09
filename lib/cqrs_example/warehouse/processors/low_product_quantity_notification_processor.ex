@@ -2,11 +2,12 @@ defmodule CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcess
   @moduledoc false
 
   alias CqrsExample.Warehouse.Commands
-  alias CqrsExample.Warehouse.Events
   alias CqrsExample.Warehouse.Views
   alias CqrsExample.Messaging
 
   use Agent
+
+  @behaviour Messaging.MessageHandler
 
   @spec start_link(any()) :: Agent.on_start()
   def start_link(_initial_value) do
@@ -25,27 +26,35 @@ defmodule CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcess
     )
   end
 
-  @spec handle_event(struct()) :: :ok | {:error, any()}
-  def handle_event(%Events.ProductQuantityIncreased{} = event) do
+  @impl Messaging.MessageHandler
+  def handle_message(%Messaging.Message{
+        type: "Warehouse.Events.ProductQuantityIncreased",
+        schema_version: 1,
+        payload: %{"sku" => sku, "quantity" => quantity}
+      }) do
     Agent.update(__MODULE__, fn %{} = state ->
-      Map.update(state, event.sku, event.quantity, &(&1 + event.quantity))
+      Map.update(state, sku, quantity, &(&1 + quantity))
     end)
   end
 
-  def handle_event(%Events.ProductQuantityShipped{} = event) do
+  def handle_message(%Messaging.Message{
+        type: "Warehouse.Events.ProductQuantityShipped",
+        schema_version: 1,
+        payload: %{"sku" => sku, "quantity" => quantity}
+      }) do
     Agent.get_and_update(__MODULE__, fn %{} = state ->
-      Map.get_and_update(state, event.sku, fn
+      Map.get_and_update(state, sku, fn
         nil ->
           {0, 0}
 
         current_quantity ->
-          new_quantity = current_quantity - event.quantity
+          new_quantity = current_quantity - quantity
           {new_quantity, new_quantity}
       end)
     end)
     |> Kernel.then(fn new_quantity ->
       if new_quantity <= 5 do
-        {:ok, events} = Commands.notify_low_product_quantity(event.sku, new_quantity)
+        {:ok, events} = Commands.notify_low_product_quantity(sku, new_quantity)
         :ok = Messaging.dispatch_events(events)
       end
     end)
@@ -53,7 +62,7 @@ defmodule CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcess
     :ok
   end
 
-  def handle_event(_event) do
+  def handle_message(_event) do
     :ok
   end
 end

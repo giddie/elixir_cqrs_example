@@ -1,6 +1,6 @@
 import Config
 
-config :cqrs_example, CqrsExample.StateSupervisor, enable_test_event_processors: true
+config :cqrs_example, CqrsExample.StateSupervisor, enable_test_message_processors: true
 
 config :cqrs_example, CqrsExample.Repo,
   username: "postgres",
@@ -21,10 +21,12 @@ config :cqrs_example, CqrsExampleWeb.Endpoint,
 config :cqrs_example, CqrsExample.Mailer, adapter: Swoosh.Adapters.Test
 
 config :cqrs_example, CqrsExample.Messaging,
+  exchange_name: "test.messaging",
+  using_ecto_sandbox: true,
+  use_durable_queues: false,
   listeners: [
     environment_specific: [
-      CqrsExample.Test.EventProcessor,
-      CqrsExample.Test.EventWatcher
+      CqrsExample.Test.MessageWatcher
     ]
   ]
 

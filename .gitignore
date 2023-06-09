@@ -35,3 +35,4 @@ cqrs_memory_sync-*.tar
 npm-debug.log
 /assets/node_modules/
 
+/.env.local

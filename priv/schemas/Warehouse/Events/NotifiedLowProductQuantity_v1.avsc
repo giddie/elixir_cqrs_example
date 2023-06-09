@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "name": "NotifiedLowProductQuantity",
+  "fields": [
+    {
+      "name": "sku",
+      "type": "string"
+    }
+  ]
+}

@@ -7,6 +7,8 @@ defmodule CqrsExample.Application do
 
   @impl true
   def start(_type, _args) do
+    :ok = CqrsExample.Messaging.init()
+
     children = [
       # Start the Telemetry supervisor
       CqrsExampleWeb.Telemetry,
@@ -17,6 +19,8 @@ defmodule CqrsExample.Application do
       {Finch, name: CqrsExample.Finch},
       # Start the Endpoint (http/https)
       CqrsExampleWeb.Endpoint,
+      CqrsExample.Messaging.Avrora,
+      CqrsExample.Messaging.MessageProcessingSupervisor,
       CqrsExample.StateSupervisor
     ]
 

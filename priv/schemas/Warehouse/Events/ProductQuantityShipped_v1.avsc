@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "ProductQuantityShipped",
+  "fields": [
+    {
+      "name": "sku",
+      "type": "string"
+    },
+    {
+      "name": "quantity",
+      "type": "long"
+    }
+  ]
+}

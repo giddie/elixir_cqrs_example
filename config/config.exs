@@ -29,11 +29,20 @@ config :cqrs_example, CqrsExampleWeb.Endpoint,
 config :cqrs_example, CqrsExample.Mailer, adapter: Swoosh.Adapters.Local
 
 config :cqrs_example, CqrsExample.Messaging,
+  exchange_name: "messaging",
   listeners: [
     global: [
       CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcessor,
       CqrsExample.Warehouse.Views.Products.EventProcessor
     ]
+  ]
+
+config :amqp,
+  connections: [
+    dispatch: []
+  ],
+  channels: [
+    dispatch: [connection: :dispatch]
   ]
 
 # Configure esbuild (the version is required)

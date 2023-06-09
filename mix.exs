@@ -50,7 +50,13 @@ defmodule CqrsExample.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.3", only: [:dev], runtime: false},
       {:ecto_sql, "~> 3.10"},
-      {:postgrex, "~> 0.17"}
+      {:postgrex, "~> 0.17"},
+      {:broadway_rabbitmq, "~> 0.8"},
+      {:avrora, "~> 0.26"},
+      {:assert_eventually, "~> 1.0"},
+
+      # Force newer version to fix build failure
+      {:snappyer, "~> 1.2.9", override: true}
     ]
   end
 

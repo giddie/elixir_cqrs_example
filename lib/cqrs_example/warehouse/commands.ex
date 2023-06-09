@@ -1,7 +1,7 @@
 defmodule CqrsExample.Warehouse.Commands do
   @moduledoc false
 
-  alias CqrsExample.Warehouse.Events
+  alias CqrsExample.Messaging
   alias CqrsExample.Warehouse.Views
 
   require Logger
@@ -11,23 +11,25 @@ defmodule CqrsExample.Warehouse.Commands do
     @type t :: %__MODULE__{}
   end
 
-  @type event :: struct()
-
-  @spec increase_product_quantity(String.t(), pos_integer()) :: {:ok, [event()]}
+  @spec increase_product_quantity(String.t(), pos_integer()) :: {:ok, [Messaging.Message.t()]}
   def increase_product_quantity(sku, quantity)
       when is_binary(sku) and
              is_integer(quantity) and quantity > 0 do
     {:ok,
      [
-       %Events.ProductQuantityIncreased{
-         sku: sku,
-         quantity: quantity
+       %Messaging.Message{
+         type: "Warehouse.Events.ProductQuantityIncreased",
+         schema_version: 1,
+         payload: %{
+           sku: sku,
+           quantity: quantity
+         }
        }
      ]}
   end
 
   @spec ship_product_quantity(String.t(), pos_integer()) ::
-          {:ok, [event()]} | {:error, DomainConsistencyError.t()}
+          {:ok, [Messaging.Message.t()]} | {:error, DomainConsistencyError.t()}
   def ship_product_quantity(sku, quantity)
       when is_binary(sku) and
              is_integer(quantity) and quantity > 0 do
@@ -38,19 +40,32 @@ defmodule CqrsExample.Warehouse.Commands do
     else
       {:ok,
        [
-         %Events.ProductQuantityShipped{
-           sku: sku,
-           quantity: quantity
+         %Messaging.Message{
+           type: "Warehouse.Events.ProductQuantityShipped",
+           schema_version: 1,
+           payload: %{
+             sku: sku,
+             quantity: quantity
+           }
          }
        ]}
     end
   end
 
-  @spec notify_low_product_quantity(String.t(), non_neg_integer()) :: {:ok, [event()]}
+  @spec notify_low_product_quantity(String.t(), non_neg_integer()) ::
+          {:ok, [Messaging.Message.t()]}
   def notify_low_product_quantity(sku, quantity)
       when is_binary(sku) and
              is_integer(quantity) do
     Logger.warn("Low quantity of product #{sku}! #{quantity} remaining.")
-    {:ok, [%Events.NotifiedLowProductQuantity{sku: sku}]}
+
+    {:ok,
+     [
+       %Messaging.Message{
+         type: "Warehouse.Events.NotifiedLowProductQuantity",
+         schema_version: 1,
+         payload: %{sku: sku}
+       }
+     ]}
   end
 end

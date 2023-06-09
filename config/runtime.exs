@@ -98,3 +98,9 @@ if config_env() == :prod do
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
 end
+
+with queue_prefix when not is_nil(queue_prefix) <- System.get_env("MESSAGING_QUEUE_PREFIX") do
+  if String.length(queue_prefix) > 0 do
+    config :cqrs_example, CqrsExample.Messaging, queue_prefix: queue_prefix
+  end
+end
