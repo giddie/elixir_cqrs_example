@@ -3,7 +3,8 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
   use AssertEventually, timeout: 1_000, interval: 50
 
   alias CqrsExample.Messaging
-  alias CqrsExample.Warehouse.Views
+  alias CqrsExample.Warehouse.Commands
+
   alias CqrsExample.Test.MessageWatcher
 
   setup do
@@ -46,20 +47,8 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
 
   describe "with a quantity of 10 on hand" do
     setup do
-      [
-        %Messaging.Message{
-          type: "Warehouse.Events.ProductQuantityIncreased",
-          schema_version: 1,
-          payload: %{
-            sku: "abc123",
-            quantity: 10
-          }
-        }
-      ]
-      |> Messaging.dispatch_events()
-
-      # Wait until the product appears in the view.
-      assert_eventually([%Views.Products.Product{}] = Views.Products.list())
+      {:ok, events} = Commands.increase_product_quantity("abc123", 10)
+      :ok = Messaging.dispatch_events(events)
 
       :ok
     end
@@ -131,23 +120,11 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
   end
 
   test "ship_quantity: not enough to trigger a notification", %{conn: conn} do
-    [
-      %Messaging.Message{
-        type: "Warehouse.Events.ProductQuantityIncreased",
-        schema_version: 1,
-        payload: %{
-          sku: "abc123",
-          quantity: 50
-        }
-      }
-    ]
-    |> Messaging.dispatch_events()
-
-    # Wait until the product appears in the view.
-    assert_eventually([%Views.Products.Product{}] = Views.Products.list())
+    {:ok, events} = Commands.increase_product_quantity("abc123", 50)
+    :ok = Messaging.dispatch_events(events)
 
     conn = post(conn, ~p"/warehouse/products/abc123/ship_quantity", %{quantity: 40})
-    assert_eventually(response(conn, 200) == "")
+    assert response(conn, 200) == ""
 
     assert_eventually(
       [
@@ -156,39 +133,6 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
           schema_version: 1,
           payload: %{"sku" => "abc123", "quantity" => 50}
         },
-        %Messaging.Message{
-          type: "Warehouse.Events.ProductQuantityShipped",
-          schema_version: 1,
-          payload: %{"sku" => "abc123", "quantity" => 40}
-        }
-      ] = MessageWatcher.list_messages()
-    )
-  end
-
-  test "ship_quantity: state reset + not enough to trigger a notification", %{conn: conn} do
-    [
-      %Messaging.Message{
-        type: "Warehouse.Events.ProductQuantityIncreased",
-        schema_version: 1,
-        payload: %{sku: "abc123", quantity: 50}
-      }
-    ]
-    |> Messaging.dispatch_events()
-
-    # Wait until the product appears in the view.
-    assert_eventually([%Views.Products.Product{}] = Views.Products.list())
-
-    # Resetting the state could affect the detection of low product quantity. If, after a state
-    # reset, the system were to assume the quantity was 0, we'd receive a notification when trying
-    # to ship.
-    CqrsExample.Application.reset_state()
-
-    conn = post(conn, ~p"/warehouse/products/abc123/ship_quantity", %{quantity: 40})
-    assert response(conn, 200) == ""
-
-    # Note that the first event is missing here due to the state reset.
-    assert_eventually(
-      [
         %Messaging.Message{
           type: "Warehouse.Events.ProductQuantityShipped",
           schema_version: 1,

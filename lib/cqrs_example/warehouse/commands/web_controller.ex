@@ -27,7 +27,7 @@ defmodule CqrsExample.Warehouse.Commands.WebController do
         :ok = Messaging.dispatch_events(events)
         resp(conn, 200, "")
 
-      {:error, %Commands.DomainConsistencyError{} = reason} ->
+      {:error, %Commands.InsufficientQuantityOnHandError{} = reason} ->
         resp(conn, 400, Exception.message(reason))
     end
   end

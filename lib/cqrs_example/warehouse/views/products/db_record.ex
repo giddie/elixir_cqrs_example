@@ -5,8 +5,9 @@ defmodule CqrsExample.Warehouse.Views.Products.DbRecord do
 
   use Ecto.Schema
 
+  @schema_prefix "warehouse_views"
   @primary_key false
-  schema "warehouse__products" do
+  schema "products" do
     field(:sku, :string, primary_key: true)
     field(:quantity, :integer)
     timestamps(type: :utc_datetime_usec)
