@@ -11,9 +11,7 @@ defmodule CqrsExample.StateSupervisor do
   @impl Supervisor
   def init(_init_arg) do
     children =
-      [
-        CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcessor
-      ]
+      []
       |> concat_if(enable_test_message_processors?(), [
         CqrsExample.Test.MessageWatcher
       ])
