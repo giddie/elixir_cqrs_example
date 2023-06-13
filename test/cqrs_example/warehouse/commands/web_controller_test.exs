@@ -8,6 +8,7 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
   alias CqrsExample.Test.MessageWatcher
 
   setup do
+    CqrsExample.Application.restart_message_processors()
     CqrsExample.Application.reset_state()
   end
 

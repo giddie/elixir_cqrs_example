@@ -16,28 +16,29 @@ defmodule CqrsExample.Messaging.MessageProcessingBroadway do
 
   @spec start_link(module()) :: Broadway.on_start()
   def start_link(message_processor_module) when is_atom(message_processor_module) do
-    producer_opts =
-      [
-        bindings: [{Messaging.exchange_name(), []}],
-        on_failure: :reject_and_requeue,
-        qos: [prefetch_count: 1],
-        metadata: [:headers]
-      ] ++
-        if use_durable_queues?() do
-          queue_name =
-            Atom.to_string(message_processor_module)
-            |> String.replace_prefix("#{CqrsExample}.", "")
+    {queue_name, declare_opts} =
+      if use_durable_queues?() do
+        base_name =
+          Atom.to_string(message_processor_module)
+          |> String.replace_prefix("#{CqrsExample}.", "")
 
-          [
-            queue: "#{queue_prefix()}_#{queue_name}",
-            declare: [durable: true]
-          ]
-        else
-          [
-            queue: "",
-            declare: [auto_delete: true]
-          ]
-        end
+        {"#{queue_prefix()}_#{base_name}", durable: true}
+      else
+        {UUID.uuid4(), auto_delete: true}
+      end
+
+    # Declare the queue synchronously instead of letting broadway create it for us asynchronously,
+    # to ensure the queue is ready to receive messages before we consider this process started.
+    {:ok, channel} = AMQP.Application.get_channel(:dispatch)
+    {:ok, %{}} = AMQP.Queue.declare(channel, queue_name, declare_opts)
+    :ok = AMQP.Queue.bind(channel, queue_name, Messaging.exchange_name())
+
+    producer_opts = [
+      queue: queue_name,
+      on_failure: :reject_and_requeue,
+      qos: [prefetch_count: 1],
+      metadata: [:headers]
+    ]
 
     Broadway.start_link(__MODULE__,
       name: :"#{__MODULE__}_#{message_processor_module}",

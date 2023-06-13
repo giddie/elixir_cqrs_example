@@ -70,10 +70,8 @@ defmodule CqrsExample.Messaging do
       Application.get_env(:cqrs_example, __MODULE__)
       |> Keyword.fetch!(:exchange_name)
 
-    {:ok, connection} = AMQP.Connection.open()
-    {:ok, channel} = AMQP.Channel.open(connection)
+    {:ok, channel} = AMQP.Application.get_channel(:dispatch)
     :ok = AMQP.Exchange.declare(channel, exchange_name, :fanout, durable: true)
-    :ok = AMQP.Connection.close(connection)
   end
 
   @spec serialize_messages!([Message.t()]) :: [SerializedMessage.t()]

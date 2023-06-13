@@ -54,6 +54,7 @@ defmodule CqrsExample.MixProject do
       {:broadway_rabbitmq, "~> 0.8"},
       {:avrora, "~> 0.26"},
       {:assert_eventually, "~> 1.0"},
+      {:uuid, "~> 1.1"},
 
       # Force newer version to fix build failure
       {:snappyer, "~> 1.2.9", override: true}

@@ -32,9 +32,18 @@ defmodule CqrsExample.Application do
 
   @spec reset_state() :: :ok
   def reset_state() do
-    :ok = Supervisor.terminate_child(CqrsExample.Supervisor, CqrsExample.StateSupervisor)
+    child = CqrsExample.StateSupervisor
+    :ok = Supervisor.terminate_child(CqrsExample.Supervisor, child)
+    {:ok, _pid} = Supervisor.restart_child(CqrsExample.Supervisor, child)
 
-    {:ok, _pid} = Supervisor.restart_child(CqrsExample.Supervisor, CqrsExample.StateSupervisor)
+    :ok
+  end
+
+  @spec restart_message_processors() :: :ok
+  def restart_message_processors() do
+    child = CqrsExample.Messaging.MessageProcessingSupervisor
+    :ok = Supervisor.terminate_child(CqrsExample.Supervisor, child)
+    {:ok, _pid} = Supervisor.restart_child(CqrsExample.Supervisor, child)
 
     :ok
   end
