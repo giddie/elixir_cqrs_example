@@ -3,6 +3,7 @@ defmodule CqrsExample.Warehouse.Commands do
 
   alias __MODULE__.State
   alias CqrsExample.Messaging
+  alias CqrsExample.Repo
 
   require Logger
 
@@ -14,59 +15,80 @@ defmodule CqrsExample.Warehouse.Commands do
     def message(_self), do: "Insufficient quantity on hand."
   end
 
-  @spec increase_product_quantity(String.t(), pos_integer()) :: {:ok, [Messaging.Message.t()]}
+  @spec increase_product_quantity(String.t(), pos_integer()) :: :ok
   def increase_product_quantity(sku, quantity)
       when is_binary(sku) and
              is_integer(quantity) and quantity > 0 do
     :ok = State.adjust_product_quantity(sku, quantity)
 
-    {:ok,
-     [
-       %Messaging.Message{
-         type: "Warehouse.Events.ProductQuantityIncreased",
-         schema_version: 1,
-         payload: %{
-           sku: sku,
-           quantity: quantity
-         }
-       }
-     ]}
+    {:ok, :ok} =
+      Repo.transaction(fn ->
+        [
+          %Messaging.Message{
+            type: "Warehouse.Events.ProductQuantityIncreased",
+            schema_version: 1,
+            payload: %{
+              sku: sku,
+              quantity: quantity
+            }
+          }
+        ]
+        |> Messaging.dispatch_events()
+      end)
+
+    :ok
   end
 
   @spec ship_product_quantity(String.t(), pos_integer()) ::
-          {:ok, [Messaging.Message.t()]} | {:error, InsufficientQuantityOnHandError.t()}
+          :ok | {:error, InsufficientQuantityOnHandError.t()}
   def ship_product_quantity(sku, quantity)
       when is_binary(sku) and
              is_integer(quantity) and quantity > 0 do
-    with :ok <- State.adjust_product_quantity(sku, -quantity) do
-      {:ok,
-       [
-         %Messaging.Message{
-           type: "Warehouse.Events.ProductQuantityShipped",
-           schema_version: 1,
-           payload: %{
-             sku: sku,
-             quantity: quantity
-           }
-         }
-       ]}
+    Repo.transaction(fn ->
+      State.adjust_product_quantity(sku, -quantity)
+      |> case do
+        :ok ->
+          [
+            %Messaging.Message{
+              type: "Warehouse.Events.ProductQuantityShipped",
+              schema_version: 1,
+              payload: %{
+                sku: sku,
+                quantity: quantity
+              }
+            }
+          ]
+          |> Messaging.dispatch_events()
+
+        {:error, reason} ->
+          Repo.rollback(reason)
+      end
+    end)
+    |> case do
+      {:ok, :ok} -> :ok
+      {:error, _reason} = error -> error
     end
   end
 
-  @spec notify_low_product_quantity(String.t(), non_neg_integer()) ::
-          {:ok, [Messaging.Message.t()]}
+  @spec notify_low_product_quantity(String.t(), non_neg_integer()) :: :ok
   def notify_low_product_quantity(sku, quantity)
       when is_binary(sku) and
              is_integer(quantity) do
-    Logger.warn("Low quantity of product #{sku}! #{quantity} remaining.")
+    {:ok, :ok} =
+      Repo.transaction(fn ->
+        Logger.warn("Low quantity of product #{sku}! #{quantity} remaining.")
 
-    {:ok,
-     [
-       %Messaging.Message{
-         type: "Warehouse.Events.NotifiedLowProductQuantity",
-         schema_version: 1,
-         payload: %{sku: sku}
-       }
-     ]}
+        :ok =
+          [
+            %Messaging.Message{
+              type: "Warehouse.Events.NotifiedLowProductQuantity",
+              schema_version: 1,
+              payload: %{sku: sku}
+            }
+          ]
+          |> Messaging.dispatch_events()
+      end)
+
+    :ok
   end
 end

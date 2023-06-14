@@ -166,11 +166,9 @@ defmodule CqrsExample.Messaging do
   end
 
   def dispatch_events([%SerializedMessage{} | _messages_tail] = messages) do
-    Repo.transaction(fn ->
-      for message <- messages do
-        :ok = store_message_in_outbox(message)
-      end
-    end)
+    for message <- messages do
+      :ok = store_message_in_outbox(message)
+    end
 
     if @using_ecto_sandbox do
       # The outbox processor will never receive a notification that these records have been
@@ -184,6 +182,10 @@ defmodule CqrsExample.Messaging do
 
   @spec store_message_in_outbox(SerializedMessage.t()) :: :ok
   def store_message_in_outbox(%SerializedMessage{} = message) do
+    if not Repo.in_transaction?() do
+      raise "Messages must be dispatched within a transaction."
+    end
+
     {:ok, _record} =
       OutboxMessage.from_serialized_message(message)
       |> Repo.insert()

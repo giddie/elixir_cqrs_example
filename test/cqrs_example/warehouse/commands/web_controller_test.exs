@@ -50,10 +50,7 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
 
   describe "with a quantity of 10 on hand" do
     setup do
-      {:ok, events} = Commands.increase_product_quantity("abc123", 10)
-      :ok = Messaging.dispatch_events(events)
-
-      :ok
+      :ok = Commands.increase_product_quantity("abc123", 10)
     end
 
     test "ship_quantity: insufficient quantity", %{conn: conn} do
@@ -123,8 +120,7 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
   end
 
   test "ship_quantity: not enough to trigger a notification", %{conn: conn} do
-    {:ok, events} = Commands.increase_product_quantity("abc123", 50)
-    :ok = Messaging.dispatch_events(events)
+    :ok = Commands.increase_product_quantity("abc123", 50)
 
     conn = post(conn, ~p"/warehouse/products/abc123/ship_quantity", %{quantity: 40})
     assert response(conn, 200) == ""

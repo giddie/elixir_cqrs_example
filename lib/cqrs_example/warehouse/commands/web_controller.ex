@@ -1,7 +1,6 @@
 defmodule CqrsExample.Warehouse.Commands.WebController do
   @moduledoc false
 
-  alias CqrsExample.Messaging
   alias CqrsExample.Warehouse.Commands
 
   use CqrsExampleWeb, :controller
@@ -9,8 +8,7 @@ defmodule CqrsExample.Warehouse.Commands.WebController do
   def increase_quantity(%Plug.Conn{} = conn, %{"sku" => sku, "quantity" => quantity})
       when is_binary(sku) and
              is_integer(quantity) and quantity > 0 do
-    {:ok, events} = Commands.increase_product_quantity(sku, quantity)
-    :ok = Messaging.dispatch_events(events)
+    :ok = Commands.increase_product_quantity(sku, quantity)
     resp(conn, 200, "")
   end
 
@@ -23,8 +21,7 @@ defmodule CqrsExample.Warehouse.Commands.WebController do
              is_integer(quantity) and quantity > 0 do
     Commands.ship_product_quantity(sku, quantity)
     |> case do
-      {:ok, events} ->
-        :ok = Messaging.dispatch_events(events)
+      :ok ->
         resp(conn, 200, "")
 
       {:error, %Commands.InsufficientQuantityOnHandError{} = reason} ->

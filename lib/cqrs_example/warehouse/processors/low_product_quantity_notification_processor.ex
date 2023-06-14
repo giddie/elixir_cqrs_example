@@ -24,12 +24,13 @@ defmodule CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcess
         schema_version: 1,
         payload: %{"sku" => sku, "quantity" => quantity}
       }) do
-    {:ok, new_quantity} = adjust_quantity(sku, -quantity)
+    Repo.transaction(fn ->
+      {:ok, new_quantity} = adjust_quantity(sku, -quantity)
 
-    if new_quantity <= 5 do
-      {:ok, events} = Commands.notify_low_product_quantity(sku, new_quantity)
-      :ok = Messaging.dispatch_events(events)
-    end
+      if new_quantity <= 5 do
+        :ok = Commands.notify_low_product_quantity(sku, new_quantity)
+      end
+    end)
   end
 
   def handle_message(_event) do

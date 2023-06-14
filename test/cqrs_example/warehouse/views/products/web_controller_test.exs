@@ -3,6 +3,7 @@ defmodule CqrsExample.Warehouse.Views.Products.WebControllerTest do
   use AssertEventually, timeout: 1_000, interval: 50
 
   alias CqrsExample.Messaging
+  alias CqrsExample.Repo
 
   setup do
     CqrsExample.Application.reset_state()
@@ -16,25 +17,27 @@ defmodule CqrsExample.Warehouse.Views.Products.WebControllerTest do
   end
 
   test "index", %{conn: conn} do
-    [
-      %Messaging.Message{
-        type: "Warehouse.Events.ProductQuantityIncreased",
-        schema_version: 1,
-        payload: %{
-          sku: "abc123",
-          quantity: 30
+    Repo.transaction(fn ->
+      [
+        %Messaging.Message{
+          type: "Warehouse.Events.ProductQuantityIncreased",
+          schema_version: 1,
+          payload: %{
+            sku: "abc123",
+            quantity: 30
+          }
+        },
+        %Messaging.Message{
+          type: "Warehouse.Events.ProductQuantityShipped",
+          schema_version: 1,
+          payload: %{
+            sku: "abc123",
+            quantity: 20
+          }
         }
-      },
-      %Messaging.Message{
-        type: "Warehouse.Events.ProductQuantityShipped",
-        schema_version: 1,
-        payload: %{
-          sku: "abc123",
-          quantity: 20
-        }
-      }
-    ]
-    |> Messaging.dispatch_events()
+      ]
+      |> Messaging.dispatch_events()
+    end)
 
     assert_eventually(
       get(conn, ~p"/warehouse/products")
