@@ -8,8 +8,10 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
   alias CqrsExample.Test.MessageWatcher
 
   setup do
-    CqrsExample.Application.restart_message_processors()
+    Messaging.Supervisor.restart_message_processors()
     CqrsExample.Application.reset_state()
+    {:ok, _pid} = Messaging.OutboxProcessor.start_link()
+    :ok
   end
 
   test "increase_quantity: bad params", %{conn: conn} do

@@ -19,8 +19,7 @@ defmodule CqrsExample.Application do
       {Finch, name: CqrsExample.Finch},
       # Start the Endpoint (http/https)
       CqrsExampleWeb.Endpoint,
-      CqrsExample.Messaging.Avrora,
-      CqrsExample.Messaging.MessageProcessingSupervisor,
+      CqrsExample.Messaging.Supervisor,
       CqrsExample.StateSupervisor
     ]
 
@@ -33,15 +32,6 @@ defmodule CqrsExample.Application do
   @spec reset_state() :: :ok
   def reset_state() do
     child = CqrsExample.StateSupervisor
-    :ok = Supervisor.terminate_child(CqrsExample.Supervisor, child)
-    {:ok, _pid} = Supervisor.restart_child(CqrsExample.Supervisor, child)
-
-    :ok
-  end
-
-  @spec restart_message_processors() :: :ok
-  def restart_message_processors() do
-    child = CqrsExample.Messaging.MessageProcessingSupervisor
     :ok = Supervisor.terminate_child(CqrsExample.Supervisor, child)
     {:ok, _pid} = Supervisor.restart_child(CqrsExample.Supervisor, child)
 

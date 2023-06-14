@@ -6,6 +6,8 @@ defmodule CqrsExample.Warehouse.Views.Products.WebControllerTest do
 
   setup do
     CqrsExample.Application.reset_state()
+    {:ok, _pid} = Messaging.OutboxProcessor.start_link()
+    :ok
   end
 
   test "index: no products", %{conn: conn} do

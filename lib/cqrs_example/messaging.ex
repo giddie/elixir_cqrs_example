@@ -3,8 +3,12 @@ defmodule CqrsExample.Messaging do
 
   alias __MODULE__.Avrora
   alias __MODULE__.Message
+  alias __MODULE__.OutboxMessage
+  alias __MODULE__.OutboxProcessor
   alias __MODULE__.SerializedMessage
-  require Logger
+  alias CqrsExample.Repo
+
+  require Ecto.Query
 
   @exchange_name Application.compile_env!(:cqrs_example, __MODULE__)
                  |> Keyword.fetch!(:exchange_name)
@@ -161,10 +165,72 @@ defmodule CqrsExample.Messaging do
     end
   end
 
-  def dispatch_events([%SerializedMessage{} | messages_tail] = messages) do
-    {:ok, chan} = AMQP.Application.get_channel(:dispatch)
+  def dispatch_events([%SerializedMessage{} | _messages_tail] = messages) do
+    Repo.transaction(fn ->
+      for message <- messages do
+        :ok = store_message_in_outbox(message)
+      end
+    end)
 
-    true = Enum.all?(messages_tail, &Kernel.match?(%SerializedMessage{}, &1))
+    if @using_ecto_sandbox do
+      # The outbox processor will never receive a notification that these records have been
+      # inserted, because its connection is outside the transaction that wraps the test, so we
+      # need to tell it directly.
+      :ok = OutboxProcessor.check_for_new_messages()
+    end
+
+    :ok
+  end
+
+  @spec store_message_in_outbox(SerializedMessage.t()) :: :ok
+  def store_message_in_outbox(%SerializedMessage{} = message) do
+    {:ok, _record} =
+      OutboxMessage.from_serialized_message(message)
+      |> Repo.insert()
+
+    :ok
+  end
+
+  @spec process_outbox_batch() :: non_neg_integer()
+  def process_outbox_batch(batch_size \\ 10) do
+    Repo.transaction(fn ->
+      Ecto.Query.from(o in OutboxMessage,
+        order_by: [asc: :id],
+        limit: ^batch_size,
+        lock: "FOR UPDATE SKIP LOCKED"
+      )
+      |> Repo.all()
+      |> process_outbox_messages()
+    end)
+    |> Kernel.then(fn
+      {:ok, num_processed} -> num_processed
+    end)
+  end
+
+  @spec process_outbox_messages([OutboxMessage.t()]) :: non_neg_integer()
+  defp process_outbox_messages([]), do: 0
+
+  defp process_outbox_messages(records) when is_list(records) do
+    record_ids =
+      Enum.map(records, fn %OutboxMessage{} = record ->
+        :ok =
+          OutboxMessage.to_serialized_message(record)
+          |> amqp_publish_message(@exchange_name)
+
+        record.id
+      end)
+
+    {num_records, nil} =
+      Ecto.Query.from(o in OutboxMessage, where: o.id in ^record_ids)
+      |> Repo.delete_all()
+
+    num_records
+  end
+
+  @spec amqp_publish_message(SerializedMessage.t(), String.t()) :: :ok
+  def amqp_publish_message(%SerializedMessage{} = message, exchange_name)
+      when is_binary(exchange_name) do
+    {:ok, chan} = AMQP.Application.get_channel(:dispatch)
 
     metadata_header =
       if @using_ecto_sandbox do
@@ -174,17 +240,13 @@ defmodule CqrsExample.Messaging do
         []
       end
 
-    for %SerializedMessage{} = message <- messages do
-      AMQP.Basic.publish(chan, @exchange_name, "", message.payload,
-        persistent: true,
-        headers:
-          [
-            {"Type", :binary, message.type},
-            {"Schema Version", :short, message.schema_version}
-          ] ++ metadata_header
-      )
-    end
-
-    :ok
+    AMQP.Basic.publish(chan, exchange_name, "", message.payload,
+      persistent: true,
+      headers:
+        [
+          {"Type", :binary, message.type},
+          {"Schema Version", :short, message.schema_version}
+        ] ++ metadata_header
+    )
   end
 end
