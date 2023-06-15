@@ -7,13 +7,6 @@ defmodule CqrsExample.Warehouse.Commands.WebControllerTest do
 
   alias CqrsExample.Test.MessageWatcher
 
-  setup do
-    Messaging.Supervisor.restart_message_processors()
-    CqrsExample.Application.reset_state()
-    {:ok, _pid} = Messaging.OutboxProcessor.start_link()
-    :ok
-  end
-
   test "increase_quantity: bad params", %{conn: conn} do
     conn = post(conn, ~p"/warehouse/products/abc123/increase_quantity", %{})
     assert response(conn, 400) == ""

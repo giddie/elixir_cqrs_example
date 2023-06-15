@@ -5,12 +5,6 @@ defmodule CqrsExample.Warehouse.Views.Products.WebControllerTest do
   alias CqrsExample.Messaging
   alias CqrsExample.Repo
 
-  setup do
-    CqrsExample.Application.reset_state()
-    {:ok, _pid} = Messaging.OutboxProcessor.start_link()
-    :ok
-  end
-
   test "index: no products", %{conn: conn} do
     conn = get(conn, ~p"/warehouse/products")
     assert json_response(conn, 200) == []

@@ -14,6 +14,7 @@ defmodule CqrsExample.DataCase do
   this option is not recommended for other databases.
   """
 
+  alias CqrsExample.Messaging
   use ExUnit.CaseTemplate
 
   using do
@@ -29,6 +30,7 @@ defmodule CqrsExample.DataCase do
 
   setup tags do
     CqrsExample.DataCase.setup_sandbox(tags)
+    CqrsExample.DataCase.setup_messaging(tags)
     :ok
   end
 
@@ -38,6 +40,16 @@ defmodule CqrsExample.DataCase do
   def setup_sandbox(tags) do
     pid = Ecto.Adapters.SQL.Sandbox.start_owner!(CqrsExample.Repo, shared: not tags[:async])
     on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
+  end
+
+  @doc """
+  Sets up messaging based on the test tags.
+  """
+  def setup_messaging(tags) do
+    if not tags[:async] do
+      CqrsExample.Application.reset_state()
+      start_link_supervised!(Messaging.Supervisor)
+    end
   end
 
   @doc """

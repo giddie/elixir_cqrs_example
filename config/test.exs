@@ -1,5 +1,7 @@
 import Config
 
+config :cqrs_example, CqrsExample.Application, start_messaging: false
+
 config :cqrs_example, CqrsExample.StateSupervisor, enable_test_message_processors: true
 
 config :cqrs_example, CqrsExample.Repo,

@@ -33,6 +33,8 @@ defmodule CqrsExampleWeb.ConnCase do
 
   setup tags do
     CqrsExample.DataCase.setup_sandbox(tags)
+    CqrsExample.DataCase.setup_messaging(tags)
+
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

@@ -7,21 +7,22 @@ defmodule CqrsExample.Application do
 
   @impl true
   def start(_type, _args) do
-    :ok = CqrsExample.Messaging.init()
-
-    children = [
-      # Start the Telemetry supervisor
-      CqrsExampleWeb.Telemetry,
-      # Start the PubSub system
-      {Phoenix.PubSub, name: CqrsExample.PubSub},
-      CqrsExample.Repo,
-      # Start Finch
-      {Finch, name: CqrsExample.Finch},
-      # Start the Endpoint (http/https)
-      CqrsExampleWeb.Endpoint,
-      CqrsExample.Messaging.Supervisor,
-      CqrsExample.StateSupervisor
-    ]
+    children =
+      [
+        # Start the Telemetry supervisor
+        CqrsExampleWeb.Telemetry,
+        # Start the PubSub system
+        {Phoenix.PubSub, name: CqrsExample.PubSub},
+        CqrsExample.Repo,
+        # Start Finch
+        {Finch, name: CqrsExample.Finch},
+        # Start the Endpoint (http/https)
+        CqrsExampleWeb.Endpoint,
+        CqrsExample.StateSupervisor
+      ]
+      |> concat_if(start_messaging?(), [
+        CqrsExample.Messaging.Supervisor
+      ])
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -44,5 +45,23 @@ defmodule CqrsExample.Application do
   def config_change(changed, _new, removed) do
     CqrsExampleWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  @spec start_messaging?() :: boolean()
+  defp start_messaging?() do
+    Application.get_env(:cqrs_example, __MODULE__, [])
+    |> Keyword.get(:start_messaging, true)
+  end
+
+  @spec concat_if(list(), boolean(), list()) :: list()
+  defp concat_if(list, condition, additional_list)
+       when is_list(list) and
+              is_boolean(condition) and
+              is_list(additional_list) do
+    if condition do
+      list ++ additional_list
+    else
+      list
+    end
   end
 end

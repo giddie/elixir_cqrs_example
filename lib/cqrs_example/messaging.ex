@@ -68,16 +68,6 @@ defmodule CqrsExample.Messaging do
     @callback handle_message(Message.t()) :: :ok
   end
 
-  @spec init() :: :ok
-  def init() do
-    exchange_name =
-      Application.get_env(:cqrs_example, __MODULE__)
-      |> Keyword.fetch!(:exchange_name)
-
-    {:ok, channel} = AMQP.Application.get_channel(:dispatch)
-    :ok = AMQP.Exchange.declare(channel, exchange_name, :fanout, durable: true)
-  end
-
   @spec serialize_messages!([Message.t()]) :: [SerializedMessage.t()]
   def serialize_messages!(messages) when is_list(messages) do
     serialize_messages(messages)
