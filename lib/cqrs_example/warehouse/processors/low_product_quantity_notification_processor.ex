@@ -62,4 +62,14 @@ defmodule CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcess
 
     {:ok, quantity}
   end
+
+  @spec get_quantity(String.t()) :: integer()
+  def get_quantity(sku) when is_binary(sku) do
+    Ecto.Query.from(p in State, where: p.sku == ^sku)
+    |> Repo.all()
+    |> case do
+      [%State{} = state] -> state.quantity
+      [] -> 0
+    end
+  end
 end

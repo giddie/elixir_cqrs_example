@@ -48,7 +48,7 @@ defmodule CqrsExample.DataCase do
   def setup_messaging(tags) do
     if not tags[:async] do
       CqrsExample.Application.reset_state()
-      start_link_supervised!(Messaging.Supervisor)
+      start_link_supervised!(Messaging.BroadcastSupervisor)
     end
   end
 

@@ -26,7 +26,7 @@ config :cqrs_example, CqrsExample.Messaging,
   exchange_name: "test.messaging",
   using_ecto_sandbox: true,
   use_durable_queues: false,
-  listeners: [
+  broadcast_listeners: [
     environment_specific: [
       CqrsExample.Test.MessageWatcher
     ]

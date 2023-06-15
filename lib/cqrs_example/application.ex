@@ -18,10 +18,11 @@ defmodule CqrsExample.Application do
         {Finch, name: CqrsExample.Finch},
         # Start the Endpoint (http/https)
         CqrsExampleWeb.Endpoint,
+        CqrsExample.Messaging.Avrora,
         CqrsExample.StateSupervisor
       ]
       |> concat_if(start_messaging?(), [
-        CqrsExample.Messaging.Supervisor
+        CqrsExample.Messaging.BroadcastSupervisor
       ])
 
     # See https://hexdocs.pm/elixir/Supervisor.html

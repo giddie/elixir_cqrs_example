@@ -1,4 +1,4 @@
-defmodule CqrsExample.Messaging.Supervisor do
+defmodule CqrsExample.Messaging.BroadcastSupervisor do
   @moduledoc false
 
   alias CqrsExample.Messaging
@@ -20,8 +20,7 @@ defmodule CqrsExample.Messaging.Supervisor do
     :ok = AMQP.Exchange.declare(channel, Messaging.exchange_name(), :fanout, durable: true)
 
     children = [
-      Messaging.Avrora,
-      Messaging.MessageProcessingSupervisor,
+      Messaging.QueueProcessorSupervisor,
       Messaging.OutboxProcessor
     ]
 

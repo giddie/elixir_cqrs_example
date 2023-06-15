@@ -30,7 +30,7 @@ defmodule CqrsExample.Warehouse.Views.Products.WebControllerTest do
           }
         }
       ]
-      |> Messaging.dispatch_events()
+      |> Messaging.broadcast_messages()
     end)
 
     assert_eventually(

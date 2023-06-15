@@ -1,12 +1,12 @@
-defmodule CqrsExample.Messaging.MessageProcessingSupervisor do
+defmodule CqrsExample.Messaging.QueueProcessorSupervisor do
   @moduledoc false
 
   alias CqrsExample.Messaging
-  alias CqrsExample.Messaging.MessageProcessingBroadway
+  alias CqrsExample.Messaging.QueueProcessor
   use Supervisor
 
   @message_processors Application.compile_env!(:cqrs_example, Messaging)
-                      |> Keyword.fetch!(:listeners)
+                      |> Keyword.fetch!(:broadcast_listeners)
                       |> Keyword.values()
                       |> Enum.concat()
 
@@ -19,7 +19,7 @@ defmodule CqrsExample.Messaging.MessageProcessingSupervisor do
   def init(_init_arg) do
     children =
       Enum.map(@message_processors, fn message_processor_module ->
-        {MessageProcessingBroadway, message_processor_module}
+        {QueueProcessor, message_processor_module}
         |> Supervisor.child_spec(id: message_processor_module)
       end)
 

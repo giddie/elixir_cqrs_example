@@ -30,7 +30,7 @@ config :cqrs_example, CqrsExample.Mailer, adapter: Swoosh.Adapters.Local
 
 config :cqrs_example, CqrsExample.Messaging,
   exchange_name: "messaging",
-  listeners: [
+  broadcast_listeners: [
     global: [
       CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcessor,
       CqrsExample.Warehouse.Views.Products.EventProcessor

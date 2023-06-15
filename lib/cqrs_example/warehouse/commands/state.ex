@@ -45,4 +45,14 @@ defmodule CqrsExample.Warehouse.Commands.State do
           {:error, %InsufficientQuantityOnHandError{}}
       end
   end
+
+  @spec get_product_quantity(String.t()) :: integer()
+  def get_product_quantity(sku) when is_binary(sku) do
+    Ecto.Query.from(p in Product, where: p.sku == ^sku)
+    |> Repo.all()
+    |> case do
+      [%Product{} = product] -> product.quantity
+      [] -> 0
+    end
+  end
 end

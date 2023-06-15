@@ -65,7 +65,23 @@ defmodule CqrsExample.Messaging do
 
   defmodule MessageHandler do
     @moduledoc false
-    @callback handle_message(Message.t()) :: :ok
+    @callback handle_message(Message.t()) :: :ok | {:ok, any()}
+  end
+
+  @spec normalize_messages!([Message.t()]) :: [Message.t()]
+  def normalize_messages!(messages) when is_list(messages) do
+    messages
+    |> serialize_messages!()
+    |> deserialize_messages!()
+  end
+
+  @spec normalize_messages([Message.t()]) ::
+          {:ok, [Message.t()]} | {:error, [SerializationError.t()]}
+  def normalize_messages(messages) when is_list(messages) do
+    with {:ok, serialized_messages} <- serialize_messages(messages),
+         {:ok, deserialized_messages} <- deserialize_messages(serialized_messages) do
+      {:ok, deserialized_messages}
+    end
   end
 
   @spec serialize_messages!([Message.t()]) :: [SerializedMessage.t()]
@@ -81,16 +97,16 @@ defmodule CqrsExample.Messaging do
           {:ok, [SerializedMessage.t()]} | {:error, [SerializationError.t()]}
   def serialize_messages(messages) when is_list(messages) do
     Enum.map(messages, &serialize_message/1)
-    |> Enum.reduce(%{}, fn {result, value}, acc when result in [:ok, :error] ->
-      Map.update(acc, result, [value], &[value | &1])
-    end)
+    |> collect_results()
+  end
+
+  @spec serialize_message!(Message.t()) :: SerializedMessage.t()
+  def serialize_message!(%Message{} = message) do
+    serialize_message(message)
     |> case do
-      %{error: reasons} -> {:error, reasons}
-      %{ok: messages} -> {:ok, messages}
+      {:ok, %SerializedMessage{} = message} -> message
+      {:error, %SerializationError{} = error} -> raise error
     end
-    |> Kernel.then(fn
-      {result, list} -> {result, Enum.reverse(list)}
-    end)
   end
 
   @spec serialize_message(Message.t()) ::
@@ -115,6 +131,22 @@ defmodule CqrsExample.Messaging do
            message_struct: message
          }}
     end
+  end
+
+  @spec deserialize_messages!([SerializedMessage.t()]) :: [Message.t()]
+  def deserialize_messages!(messages) when is_list(messages) do
+    deserialize_messages(messages)
+    |> case do
+      {:ok, messages} when is_list(messages) -> messages
+      {:error, [%SerializationError{} = error | _others]} -> raise error
+    end
+  end
+
+  @spec deserialize_messages([SerializedMessage.t()]) ::
+          {:ok, [Message.t()]} | {:error, [SerializationError.t()]}
+  def deserialize_messages(messages) when is_list(messages) do
+    Enum.map(messages, &deserialize_message/1)
+    |> collect_results()
   end
 
   @spec deserialize_message!(SerializedMessage.t()) :: Message.t()
@@ -145,35 +177,65 @@ defmodule CqrsExample.Messaging do
     end
   end
 
-  @spec dispatch_events([Message.t()] | [SerializedMessage.t()]) ::
-          :ok | {:error, [SerializationError.t()]}
-  def dispatch_events([]), do: :ok
-
-  def dispatch_events([%Message{} | _messages_tail] = messages) do
-    with {:ok, events} <- serialize_messages(messages) do
-      dispatch_events(events)
+  @spec unicast_messages_sync!([Message.t()], atom()) :: :ok
+  def unicast_messages_sync!(messages, message_handler_module) do
+    unicast_messages_sync(messages, message_handler_module)
+    |> case do
+      :ok -> :ok
+      {:error, [%SerializationError{} = error | _rest]} -> raise error
     end
   end
 
-  def dispatch_events([%SerializedMessage{} | _messages_tail] = messages) do
-    for message <- messages do
-      :ok = store_message_in_outbox(message)
-    end
+  @spec unicast_messages_sync([Message.t()], atom()) :: :ok | {:error, [SerializationError.t()]}
+  def unicast_messages_sync(messages, message_handler_module)
+      when is_list(messages) and
+             is_atom(message_handler_module) do
+    with {:ok, messages} <- normalize_messages(messages) do
+      Repo.transaction(fn ->
+        for message <- messages do
+          message_handler_module.handle_message(message)
+          |> case do
+            :ok -> :ok
+            {:ok, _any} -> :ok
+          end
+        end
+      end)
 
-    if @using_ecto_sandbox do
-      # The outbox processor will never receive a notification that these records have been
-      # inserted, because its connection is outside the transaction that wraps the test, so we
-      # need to tell it directly.
-      :ok = OutboxProcessor.check_for_new_messages()
+      :ok
     end
+  end
 
-    :ok
+  @spec broadcast_messages!([Message.t()]) :: :ok
+  def broadcast_messages!(messages) do
+    broadcast_messages(messages)
+    |> case do
+      :ok -> :ok
+      {:error, [%SerializationError{} = error | _rest]} -> raise error
+    end
+  end
+
+  @spec broadcast_messages([Message.t()]) :: :ok | {:error, [SerializationError.t()]}
+  def broadcast_messages(messages) when is_list(messages) do
+    with {:ok, messages} <- serialize_messages(messages) do
+      for message <- messages do
+        :ok = store_message_in_outbox(message)
+      end
+
+      if @using_ecto_sandbox do
+        # The outbox processor will never receive a notification that these records have been
+        # inserted, because its connection is outside the transaction that wraps the test, so we
+        # need to tell it directly.
+        :ok = OutboxProcessor.check_for_new_messages()
+      end
+
+      :ok
+    end
   end
 
   @spec store_message_in_outbox(SerializedMessage.t()) :: :ok
   def store_message_in_outbox(%SerializedMessage{} = message) do
     if not Repo.in_transaction?() do
-      raise "Messages must be dispatched within a transaction."
+      raise "Messages stored in the outbox must be sent within a transaction."
     end
 
     {:ok, _record} =
@@ -183,10 +245,23 @@ defmodule CqrsExample.Messaging do
     :ok
   end
 
+  @spec peek_at_outbox_messages(pos_integer()) :: [Message.t()]
+  def peek_at_outbox_messages(limit \\ 10) do
+    Ecto.Query.from(
+      o in OutboxMessage,
+      order_by: [asc: :id],
+      limit: ^limit
+    )
+    |> Repo.all()
+    |> Enum.map(&OutboxMessage.to_serialized_message/1)
+    |> Enum.map(&deserialize_message!/1)
+  end
+
   @spec process_outbox_batch() :: non_neg_integer()
   def process_outbox_batch(batch_size \\ 10) do
     Repo.transaction(fn ->
-      Ecto.Query.from(o in OutboxMessage,
+      Ecto.Query.from(
+        o in OutboxMessage,
         order_by: [asc: :id],
         limit: ^batch_size,
         lock: "FOR UPDATE SKIP LOCKED"
@@ -231,5 +306,20 @@ defmodule CqrsExample.Messaging do
         {"Schema Version", :short, message.schema_version}
       ]
     )
+  end
+
+  @spec collect_results(Enum.t({:ok, any()} | {:error, any()})) ::
+          {:ok, [any()]} | {:error, [any()]}
+  defp collect_results(results) when is_list(results) do
+    Enum.reduce(results, %{}, fn {result, value}, acc when result in [:ok, :error] ->
+      Map.update(acc, result, [value], &[value | &1])
+    end)
+    |> case do
+      %{error: reasons} -> {:error, reasons}
+      %{ok: messages} -> {:ok, messages}
+    end
+    |> Kernel.then(fn
+      {result, list} -> {result, Enum.reverse(list)}
+    end)
   end
 end

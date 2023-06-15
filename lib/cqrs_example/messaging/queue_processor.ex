@@ -1,25 +1,27 @@
-defmodule CqrsExample.Messaging.MessageProcessingBroadway do
+defmodule CqrsExample.Messaging.QueueProcessor do
   @moduledoc false
 
   alias CqrsExample
   alias CqrsExample.Messaging
+  alias CqrsExample.Messaging.Message
   alias CqrsExample.Messaging.SerializedMessage
+  alias CqrsExample.Repo
 
   use Broadway
 
   defmodule Context do
     @moduledoc false
 
-    @enforce_keys [:message_processor_module]
+    @enforce_keys [:message_handler_module]
     defstruct @enforce_keys
   end
 
   @spec start_link(module()) :: Broadway.on_start()
-  def start_link(message_processor_module) when is_atom(message_processor_module) do
+  def start_link(message_handler_module) when is_atom(message_handler_module) do
     {queue_name, declare_opts} =
       if use_durable_queues?() do
         base_name =
-          Atom.to_string(message_processor_module)
+          Atom.to_string(message_handler_module)
           |> String.replace_prefix("#{CqrsExample}.", "")
 
         {"#{queue_prefix()}_#{base_name}", durable: true}
@@ -41,8 +43,8 @@ defmodule CqrsExample.Messaging.MessageProcessingBroadway do
     ]
 
     Broadway.start_link(__MODULE__,
-      name: :"#{__MODULE__}_#{message_processor_module}",
-      context: %Context{message_processor_module: message_processor_module},
+      name: :"#{__MODULE__}_#{message_handler_module}",
+      context: %Context{message_handler_module: message_handler_module},
       producer: [
         module: {BroadwayRabbitMQ.Producer, producer_opts}
       ],
@@ -68,7 +70,15 @@ defmodule CqrsExample.Messaging.MessageProcessingBroadway do
       }
       |> Messaging.deserialize_message!()
     end)
-    |> context.message_processor_module.handle_message()
+    |> Kernel.then(fn %Message{} = message ->
+      Repo.transaction(fn ->
+        context.message_handler_module.handle_message(message)
+        |> case do
+          :ok -> :ok
+          {:ok, _any} -> :ok
+        end
+      end)
+    end)
 
     message
   end

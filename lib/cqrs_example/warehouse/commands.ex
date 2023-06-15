@@ -21,20 +21,19 @@ defmodule CqrsExample.Warehouse.Commands do
              is_integer(quantity) and quantity > 0 do
     :ok = State.adjust_product_quantity(sku, quantity)
 
-    {:ok, :ok} =
-      Repo.transaction(fn ->
-        [
-          %Messaging.Message{
-            type: "Warehouse.Events.ProductQuantityIncreased",
-            schema_version: 1,
-            payload: %{
-              sku: sku,
-              quantity: quantity
-            }
+    Repo.transaction(fn ->
+      [
+        %Messaging.Message{
+          type: "Warehouse.Events.ProductQuantityIncreased",
+          schema_version: 1,
+          payload: %{
+            sku: sku,
+            quantity: quantity
           }
-        ]
-        |> Messaging.dispatch_events()
-      end)
+        }
+      ]
+      |> Messaging.broadcast_messages!()
+    end)
 
     :ok
   end
@@ -58,7 +57,7 @@ defmodule CqrsExample.Warehouse.Commands do
               }
             }
           ]
-          |> Messaging.dispatch_events()
+          |> Messaging.broadcast_messages!()
 
         {:error, reason} ->
           Repo.rollback(reason)
@@ -74,20 +73,19 @@ defmodule CqrsExample.Warehouse.Commands do
   def notify_low_product_quantity(sku, quantity)
       when is_binary(sku) and
              is_integer(quantity) do
-    {:ok, :ok} =
-      Repo.transaction(fn ->
-        Logger.warn("Low quantity of product #{sku}! #{quantity} remaining.")
+    Repo.transaction(fn ->
+      Logger.warn("Low quantity of product #{sku}! #{quantity} remaining.")
 
-        :ok =
-          [
-            %Messaging.Message{
-              type: "Warehouse.Events.NotifiedLowProductQuantity",
-              schema_version: 1,
-              payload: %{sku: sku}
-            }
-          ]
-          |> Messaging.dispatch_events()
-      end)
+      :ok =
+        [
+          %Messaging.Message{
+            type: "Warehouse.Events.NotifiedLowProductQuantity",
+            schema_version: 1,
+            payload: %{sku: sku}
+          }
+        ]
+        |> Messaging.broadcast_messages!()
+    end)
 
     :ok
   end
