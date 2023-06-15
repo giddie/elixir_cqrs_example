@@ -224,21 +224,12 @@ defmodule CqrsExample.Messaging do
       when is_binary(exchange_name) do
     {:ok, chan} = AMQP.Application.get_channel(:dispatch)
 
-    metadata_header =
-      if @using_ecto_sandbox do
-        metadata = %{ecto_sandbox_pid: self()}
-        [{"Metadata", :binary, :erlang.term_to_binary(metadata)}]
-      else
-        []
-      end
-
     AMQP.Basic.publish(chan, exchange_name, "", message.payload,
       persistent: true,
-      headers:
-        [
-          {"Type", :binary, message.type},
-          {"Schema Version", :short, message.schema_version}
-        ] ++ metadata_header
+      headers: [
+        {"Type", :binary, message.type},
+        {"Schema Version", :short, message.schema_version}
+      ]
     )
   end
 end
