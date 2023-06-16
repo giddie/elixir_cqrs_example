@@ -32,8 +32,9 @@ config :cqrs_example, CqrsExample.Messaging,
   exchange_name: "messaging",
   broadcast_listeners: [
     global: [
-      CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcessor,
-      CqrsExample.Warehouse.Views.Products.EventProcessor
+      {CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcessor,
+       ["Warehouse.Events.#"]},
+      {CqrsExample.Warehouse.Views.Products.EventProcessor, ["Warehouse.Events.#"]}
     ]
   ]
 

@@ -19,10 +19,10 @@ defmodule CqrsExample.Messaging.BroadcastSupervisor do
   @impl Supervisor
   def init(_init_arg) do
     {:ok, channel} = AMQP.Application.get_channel(:dispatch)
-    :ok = AMQP.Exchange.declare(channel, Messaging.exchange_name(), :fanout, durable: true)
+    :ok = AMQP.Exchange.declare(channel, Messaging.exchange_name(), :topic, durable: true)
 
     children = [
-      Messaging.QueueProcessorSupervisor,
+      Messaging.BroadcastListenerSupervisor,
       Messaging.OutboxProcessor
     ]
 

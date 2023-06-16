@@ -28,7 +28,7 @@ config :cqrs_example, CqrsExample.Messaging,
   use_durable_queues: false,
   broadcast_listeners: [
     environment_specific: [
-      CqrsExample.Test.MessageWatcher
+      {CqrsExample.Test.MessageWatcher, ["#"]}
     ]
   ]
 

@@ -25,7 +25,6 @@ defmodule CqrsExample.Messaging do
 
   defmodule SerializationError do
     defexception [:message, :message_struct]
-
     @type t :: %__MODULE__{}
 
     @impl Exception
@@ -391,12 +390,14 @@ defmodule CqrsExample.Messaging do
       when is_binary(exchange_name) do
     {:ok, chan} = AMQP.Application.get_channel(:dispatch)
 
-    AMQP.Basic.publish(chan, exchange_name, "", message.payload,
-      persistent: true,
-      headers: [
-        {"Type", :binary, message.type},
-        {"Schema Version", :short, message.schema_version}
-      ]
+    routing_key = "#{message.type}.v#{message.schema_version}"
+
+    AMQP.Basic.publish(
+      chan,
+      exchange_name,
+      routing_key,
+      message.payload,
+      persistent: true
     )
   end
 

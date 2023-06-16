@@ -1,4 +1,4 @@
-defmodule CqrsExample.Messaging.QueueProcessor do
+defmodule CqrsExample.Messaging.BroadcastListener do
   @moduledoc """
   Broadway pipeline intended to handle delivery of broadcast messages to a specific message
   handler module (that implements the `CqrsExample.Messaging.MessageHandler` behaviour).
@@ -7,12 +7,19 @@ defmodule CqrsExample.Messaging.QueueProcessor do
   process is intended to serve, and the queue will be bound to the message broadcast exchange
   (`CqrsExample.Messaging.exchange_name/0`).
 
+  In addition to the name of the message handling module, the argument to `start_link/1`
+  includes a list of topics to which the queue should be subscribed. These correspond
+  to routing keys, used when binding the queue to the exchange. Look up how topic
+  exchanges work in RabbitMQ for an explanation of how this works under the hood, e.g.
+  https://www.rabbitmq.com/tutorials/tutorial-five-spring-amqp.html. These can be used to limit
+  the scope of broadcast messages delivered to the handler.
+
   Some config keys defined for `CqrsExample.Messaging` affect this module:
 
   * `use_durable_queues`: (default: `true`) Specifies that the queue defined for each message
     handler should be permanent, backed onto disk, so that it can survive broker crash or restart.
     If this is `false`, the queue will also be given a random name, and will be automatically
-    delete when the process terminates. This is useful for testing, where we want to ensure that
+    deleted when the process terminates. This is useful for testing, where we want to ensure that
     queues are empty before each test.
 
   * `queue_prefix`: Added to the beginning of each declared queue name. This should be defined in
@@ -21,12 +28,11 @@ defmodule CqrsExample.Messaging.QueueProcessor do
     message broker, each with their own set of queues.
 
   ## See also
-  * `CqrsExample.Messaging.QueueProcessorSupervisor`
+  * `CqrsExample.Messaging.BroadcastListenerSupervisor`
   """
 
   alias CqrsExample
   alias CqrsExample.Messaging
-  alias CqrsExample.Messaging.Message
   alias CqrsExample.Messaging.SerializedMessage
   alias CqrsExample.Repo
 
@@ -39,8 +45,19 @@ defmodule CqrsExample.Messaging.QueueProcessor do
     defstruct @enforce_keys
   end
 
-  @spec start_link(module()) :: Broadway.on_start()
-  def start_link(message_handler_module) when is_atom(message_handler_module) do
+  defmodule BadlyFormedMessageError do
+    defexception [:amqp_message]
+    @type t :: %__MODULE__{}
+
+    @impl Exception
+    def message(%__MODULE__{} = struct) do
+      "Badly-formed AMQP message: #{Kernel.inspect(struct.amqp_message)}"
+    end
+  end
+
+  @spec start_link({module(), [String.t()]}) :: Broadway.on_start()
+  def start_link({message_handler_module, topics})
+      when is_atom(message_handler_module) and is_list(topics) do
     {queue_name, declare_opts} =
       if use_durable_queues?() do
         base_name =
@@ -56,13 +73,22 @@ defmodule CqrsExample.Messaging.QueueProcessor do
     # to ensure the queue is ready to receive messages before we consider this process started.
     {:ok, channel} = AMQP.Application.get_channel(:dispatch)
     {:ok, %{}} = AMQP.Queue.declare(channel, queue_name, declare_opts)
-    :ok = AMQP.Queue.bind(channel, queue_name, Messaging.exchange_name())
+
+    for topic <- topics do
+      :ok =
+        AMQP.Queue.bind(
+          channel,
+          queue_name,
+          Messaging.exchange_name(),
+          routing_key: topic
+        )
+    end
 
     producer_opts = [
       queue: queue_name,
       on_failure: :reject_and_requeue,
       qos: [prefetch_count: 1],
-      metadata: [:headers]
+      metadata: [:routing_key]
     ]
 
     Broadway.start_link(__MODULE__,
@@ -79,28 +105,27 @@ defmodule CqrsExample.Messaging.QueueProcessor do
 
   @impl Broadway
   def handle_message(_processor, %Broadway.Message{} = message, %Context{} = context) do
-    require Logger
+    routing_key = Map.get(message.metadata, :routing_key, "")
 
-    message.metadata.headers
-    |> Enum.into(%{}, fn
-      {name, _type, value} when is_binary(name) -> {name, value}
-    end)
-    |> Kernel.then(fn %{"Type" => type, "Schema Version" => schema_version} ->
+    [type, schema_version_string] =
+      Regex.run(~r{^(.+)\.v(\d+)$}, routing_key, capture: :all_but_first)
+
+    {schema_version, ""} = Integer.parse(schema_version_string)
+
+    deserialized_message =
       %SerializedMessage{
         type: type,
         schema_version: schema_version,
         payload: message.data
       }
       |> Messaging.deserialize_message!()
-    end)
-    |> Kernel.then(fn %Message{} = message ->
-      Repo.transaction(fn ->
-        context.message_handler_module.handle_message(message)
-        |> case do
-          :ok -> :ok
-          {:ok, _any} -> :ok
-        end
-      end)
+
+    Repo.transaction(fn ->
+      context.message_handler_module.handle_message(deserialized_message)
+      |> case do
+        :ok -> :ok
+        {:ok, _any} -> :ok
+      end
     end)
 
     message
