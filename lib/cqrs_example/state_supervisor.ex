@@ -1,5 +1,9 @@
 defmodule CqrsExample.StateSupervisor do
-  @moduledoc false
+  @moduledoc """
+  Supervises processes responsible for storing transient state. Use
+  `CqrsExample.Application.reset_state/0` to restart this supervisor. Particularly useful in
+  tests.
+  """
 
   use Supervisor
 

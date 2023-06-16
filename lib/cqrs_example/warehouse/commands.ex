@@ -1,5 +1,7 @@
 defmodule CqrsExample.Warehouse.Commands do
-  @moduledoc false
+  @moduledoc """
+  Commands that apply to the Warehouse domain context.
+  """
 
   alias __MODULE__.State
   alias CqrsExample.Messaging
@@ -15,6 +17,19 @@ defmodule CqrsExample.Warehouse.Commands do
     def message(_self), do: "Insufficient quantity on hand."
   end
 
+  @messages %{
+    product_quantity_increased: "Warehouse.Events.ProductQuantityIncreased",
+    product_quantity_shipped: "Warehouse.Events.ProductQuantityShipped",
+    notified_low_product_quantity: "Warehouse.Events.NotifiedLowProductQuantity"
+  }
+
+  @doc """
+  Increases the available quantity of the product with the given SKU in the warehouse. If the
+  product SKU was previously unknown, we simply assume the current quantity is 0.
+
+  ## Broadcasts Messages
+  * #{@messages[:product_quantity_increased]}
+  """
   @spec increase_product_quantity(String.t(), pos_integer()) :: :ok
   def increase_product_quantity(sku, quantity)
       when is_binary(sku) and
@@ -24,7 +39,7 @@ defmodule CqrsExample.Warehouse.Commands do
     Repo.transaction(fn ->
       [
         %Messaging.Message{
-          type: "Warehouse.Events.ProductQuantityIncreased",
+          type: @messages[:product_quantity_increased],
           schema_version: 1,
           payload: %{
             sku: sku,
@@ -38,6 +53,13 @@ defmodule CqrsExample.Warehouse.Commands do
     :ok
   end
 
+  @doc """
+  Decreases the available quantity of the product with the given SKU in the warehouse by marking
+  it as shipped.
+
+  ## Broadcasts Messages
+  * #{@messages[:product_quantity_shipped]}
+  """
   @spec ship_product_quantity(String.t(), pos_integer()) ::
           :ok | {:error, InsufficientQuantityOnHandError.t()}
   def ship_product_quantity(sku, quantity)
@@ -49,7 +71,7 @@ defmodule CqrsExample.Warehouse.Commands do
         :ok ->
           [
             %Messaging.Message{
-              type: "Warehouse.Events.ProductQuantityShipped",
+              type: @messages[:product_quantity_shipped],
               schema_version: 1,
               payload: %{
                 sku: sku,
@@ -69,6 +91,13 @@ defmodule CqrsExample.Warehouse.Commands do
     end
   end
 
+  @doc """
+  Logs a message warning that the remaining quantity of a given product is low. This command
+  doesn't check the quantity, it just logs the message and broadcasts a message when it's done.
+
+  ## Broadcasts Messages
+  * #{@messages[:notified_low_product_quantity]}
+  """
   @spec notify_low_product_quantity(String.t(), non_neg_integer()) :: :ok
   def notify_low_product_quantity(sku, quantity)
       when is_binary(sku) and
@@ -79,7 +108,7 @@ defmodule CqrsExample.Warehouse.Commands do
       :ok =
         [
           %Messaging.Message{
-            type: "Warehouse.Events.NotifiedLowProductQuantity",
+            type: @messages[:notified_low_product_quantity],
             schema_version: 1,
             payload: %{sku: sku}
           }

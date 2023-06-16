@@ -55,6 +55,7 @@ defmodule CqrsExample.MixProject do
       {:avrora, "~> 0.26"},
       {:assert_eventually, "~> 1.0"},
       {:uuid, "~> 1.1"},
+      {:ex_doc, "~> 0.29", only: :dev, runtime: false},
 
       # Force newer version to fix build failure
       {:snappyer, "~> 1.2.9", override: true}

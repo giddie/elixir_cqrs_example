@@ -1,5 +1,9 @@
 defmodule CqrsExample.Test.MessageWatcher do
-  @moduledoc false
+  @moduledoc """
+  A simple message handler that logs and stores the messages it receives. In tests that run with
+  `async: false`, it's possible to test message broadcasting end-to-end through the broker, and
+  this module allows us to investigate which events have been broadcast during the test.
+  """
 
   alias CqrsExample.Messaging
 
@@ -31,7 +35,7 @@ defmodule CqrsExample.Test.MessageWatcher do
     )
   end
 
-  @spec list_messages() :: [struct()]
+  @spec list_messages() :: [Messaging.Message.t()]
   def list_messages() do
     Agent.get(__MODULE__, & &1)
   end

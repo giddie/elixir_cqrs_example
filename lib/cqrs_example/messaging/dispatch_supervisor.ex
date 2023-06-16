@@ -1,5 +1,7 @@
 defmodule CqrsExample.Messaging.BroadcastSupervisor do
-  @moduledoc false
+  @moduledoc """
+  Supervises processes relating to the dispatch and routing of broadcast messages. 
+  """
 
   alias CqrsExample.Messaging
   use Supervisor

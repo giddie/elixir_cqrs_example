@@ -1,5 +1,7 @@
 defmodule CqrsExample.Warehouse.Views.Products do
-  @moduledoc false
+  @moduledoc """
+  Offers a view of products in the warehouse. Each product has a SKU and a quantity.
+  """
 
   alias CqrsExample.Repo
   alias __MODULE__.DbRecord
@@ -7,7 +9,9 @@ defmodule CqrsExample.Warehouse.Views.Products do
   require Ecto.Query
 
   defmodule Product do
-    @moduledoc false
+    @moduledoc """
+    A product in the warehouse.
+    """
 
     alias __MODULE__, as: Self
 
@@ -20,6 +24,9 @@ defmodule CqrsExample.Warehouse.Views.Products do
           }
   end
 
+  @doc """
+  Lists all the products in the warehouse.
+  """
   @spec list() :: [Product.t()]
   def list() do
     Repo.all(DbRecord)
@@ -31,6 +38,9 @@ defmodule CqrsExample.Warehouse.Views.Products do
     end)
   end
 
+  @doc """
+  Returns the quantity of a given product in the warehouse.
+  """
   @spec get_quantity(String.t()) :: non_neg_integer()
   def get_quantity(sku) when is_binary(sku) do
     Ecto.Query.from(p in DbRecord, where: p.sku == ^sku)
@@ -41,6 +51,10 @@ defmodule CqrsExample.Warehouse.Views.Products do
     end
   end
 
+  @doc """
+  Adjusts the quantity of a given product in the warehouse in the view's internal state. Should
+  not generally be used directly.
+  """
   @spec adjust_quantity(String.t(), integer()) :: :ok
   def adjust_quantity(sku, quantity) do
     Ecto.Query.from(p in DbRecord,

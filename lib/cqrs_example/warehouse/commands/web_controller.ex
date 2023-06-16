@@ -1,5 +1,7 @@
 defmodule CqrsExample.Warehouse.Commands.WebController do
-  @moduledoc false
+  @moduledoc """
+  Phoenix Web Controller to handle commands for the Warehouse domain context.
+  """
 
   alias CqrsExample.Warehouse.Commands
 

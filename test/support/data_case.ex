@@ -46,6 +46,11 @@ defmodule CqrsExample.DataCase do
   Sets up messaging based on the test tags.
   """
   def setup_messaging(tags) do
+    # For tests that run with `async: false`, it's possible to run message broadcasting fully
+    # end-to-end through the broker. Use Test.MessageWatcher.list_messages/0 to list messages that
+    # were broadcast during the test. Due to the asynchronous nature of the broadcast, you will
+    # need to use `AssertEventually` or some similar mechanism to watch for _eventual_ delivery of
+    # messages.
     if not tags[:async] do
       CqrsExample.Application.reset_state()
       start_link_supervised!(Messaging.BroadcastSupervisor)

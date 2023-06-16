@@ -1,5 +1,9 @@
 defmodule CqrsExample.Messaging.OutboxProcessor do
-  @moduledoc false
+  @moduledoc """
+  Watches the message outbox for new messages (see
+  `CqrsExample.Messaging.store_message_in_outbox/1`). When new messages arrive, calls
+  `CqrsExample.Messaging.process_outbox_batch/1`.
+  """
 
   alias __MODULE__, as: Self
   alias CqrsExample.Messaging
@@ -36,6 +40,10 @@ defmodule CqrsExample.Messaging.OutboxProcessor do
     GenServer.start_link(Self, opts, name: __MODULE__)
   end
 
+  @doc """
+  Forces a check for new messages. Useful especially in tests, where the insert trigger won't fire
+  due to the database transaction that wraps the test.
+  """
   @spec check_for_new_messages() :: :ok
   def check_for_new_messages() do
     GenServer.cast(Self, :check_for_new_messages)

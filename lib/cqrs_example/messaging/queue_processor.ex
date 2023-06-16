@@ -1,5 +1,28 @@
 defmodule CqrsExample.Messaging.QueueProcessor do
-  @moduledoc false
+  @moduledoc """
+  Broadway pipeline intended to handle delivery of broadcast messages to a specific message
+  handler module (that implements the `CqrsExample.Messaging.MessageHandler` behaviour).
+
+  A queue will be declared in the broker that matches the name of the message handler this
+  process is intended to serve, and the queue will be bound to the message broadcast exchange
+  (`CqrsExample.Messaging.exchange_name/0`).
+
+  Some config keys defined for `CqrsExample.Messaging` affect this module:
+
+  * `use_durable_queues`: (default: `true`) Specifies that the queue defined for each message
+    handler should be permanent, backed onto disk, so that it can survive broker crash or restart.
+    If this is `false`, the queue will also be given a random name, and will be automatically
+    delete when the process terminates. This is useful for testing, where we want to ensure that
+    queues are empty before each test.
+
+  * `queue_prefix`: Added to the beginning of each declared queue name. This should be defined in
+    `config/runtime.exs` (by an environment variable), so that a different prefix can be used for
+    each instance of the app. This allows multiple versions of the app to connect to the same
+    message broker, each with their own set of queues.
+
+  ## See also
+  * `CqrsExample.Messaging.QueueProcessorSupervisor`
+  """
 
   alias CqrsExample
   alias CqrsExample.Messaging

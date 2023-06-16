@@ -1,5 +1,8 @@
 defmodule CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcessor do
-  @moduledoc false
+  @moduledoc """
+  Watches the available quantity of products in the warehouse, and invokes
+  `CqrsExample.Warehouse.Commands.notify_low_product_quantity/2` if the quantity gets low.
+  """
 
   alias __MODULE__.State
   alias CqrsExample.Messaging
@@ -37,6 +40,10 @@ defmodule CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcess
     :ok
   end
 
+  @doc """
+  Adjusts the quantity of a given SKU in the internal state of the processor. Should not generally
+  be used directly.
+  """
   @spec adjust_quantity(String.t(), integer()) :: {:ok, integer()}
   def adjust_quantity(sku, quantity) do
     Ecto.Query.from(p in State,
@@ -63,6 +70,10 @@ defmodule CqrsExample.Warehouse.Processors.LowProductQuantityNotificationProcess
     {:ok, quantity}
   end
 
+  @doc """
+  Gets the quantity of a given SKU in the internal state of the processor. Can be useful for
+  introspecting and debugging.
+  """
   @spec get_quantity(String.t()) :: integer()
   def get_quantity(sku) when is_binary(sku) do
     Ecto.Query.from(p in State, where: p.sku == ^sku)

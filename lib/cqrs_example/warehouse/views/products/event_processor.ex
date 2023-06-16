@@ -1,5 +1,8 @@
 defmodule CqrsExample.Warehouse.Views.Products.EventProcessor do
-  @moduledoc false
+  @moduledoc """
+  Watches event messages relating to warehouse product quantity and updates the view's internal
+  state accordingly.
+  """
 
   alias CqrsExample.Messaging
   alias CqrsExample.Warehouse.Views.Products

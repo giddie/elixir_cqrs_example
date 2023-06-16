@@ -1,7 +1,7 @@
 defmodule CqrsExample.Application do
-  # See https://hexdocs.pm/elixir/Application.html
-  # for more information on OTP Applications
-  @moduledoc false
+  @moduledoc """
+  See https://hexdocs.pm/elixir/Application.html for more information on OTP Applications
+  """
 
   use Application
 
@@ -31,6 +31,10 @@ defmodule CqrsExample.Application do
     Supervisor.start_link(children, opts)
   end
 
+  @doc """
+  Restart all processes that store transient domain-related state. This is useful for clearing
+  caches or other in-memory stores, particularly in tests.
+  """
   @spec reset_state() :: :ok
   def reset_state() do
     child = CqrsExample.StateSupervisor

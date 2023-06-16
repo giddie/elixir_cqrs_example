@@ -1,4 +1,8 @@
 defmodule CqrsExample.Warehouse.Views.Products.WebController do
+  @moduledoc """
+  Phoenix Web Controller to handle queries for the Warehouse Products view.
+  """
+
   use CqrsExampleWeb, :controller
 
   alias CqrsExample.Warehouse.Views.Products

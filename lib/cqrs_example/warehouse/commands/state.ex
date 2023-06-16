@@ -1,5 +1,8 @@
 defmodule CqrsExample.Warehouse.Commands.State do
-  @moduledoc false
+  @moduledoc """
+  This is the domain model used by commands in the Warehouse context to enforce domain logic. This
+  model should be used directly _only_ by the `CqrsExample.Warehouse.Commands` module.
+  """
 
   alias CqrsExample.Repo
   alias CqrsExample.Warehouse.Commands.InsufficientQuantityOnHandError
@@ -7,6 +10,10 @@ defmodule CqrsExample.Warehouse.Commands.State do
 
   require Ecto.Query
 
+  @doc """
+  Adjusts the quantity of the given SKU in the warehouse. The quantity adjustment may be positive
+  or negative.
+  """
   @spec adjust_product_quantity(String.t(), integer()) ::
           :ok | {:error, InsufficientQuantityOnHandError.t()}
   def adjust_product_quantity(sku, quantity) do
@@ -46,6 +53,9 @@ defmodule CqrsExample.Warehouse.Commands.State do
       end
   end
 
+  @doc """
+  Returns the current quantity of a given SKU in the warehouse.
+  """
   @spec get_product_quantity(String.t()) :: integer()
   def get_product_quantity(sku) when is_binary(sku) do
     Ecto.Query.from(p in Product, where: p.sku == ^sku)
