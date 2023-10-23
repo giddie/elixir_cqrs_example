@@ -347,39 +347,41 @@ defmodule CqrsExample.Messaging do
   """
   @spec process_outbox_batch() :: non_neg_integer()
   def process_outbox_batch(batch_size \\ 10) do
-    Repo.transaction(fn ->
+    message_ids_query =
       Ecto.Query.from(
         o in OutboxMessage,
         order_by: [asc: :id],
         limit: ^batch_size,
-        lock: "FOR UPDATE SKIP LOCKED"
+        lock: "FOR UPDATE SKIP LOCKED",
+        select: o.id
       )
-      |> Repo.all()
-      |> process_outbox_messages()
+
+    # Note that the transaction only commits after all the messages are processed, so the messages are in fact not
+    # deleted until everything has been processed successfully.
+    Repo.transaction(fn ->
+      Ecto.Query.from(
+        o in OutboxMessage,
+        where: o.id in subquery(message_ids_query),
+        select: o
+      )
+      |> Repo.delete_all()
+      |> then(fn {messages_count, messages} ->
+        process_outbox_messages!(messages)
+        messages_count
+      end)
     end)
-    |> Kernel.then(fn
+    |> then(fn
       {:ok, num_processed} -> num_processed
     end)
   end
 
-  @spec process_outbox_messages([OutboxMessage.t()]) :: non_neg_integer()
-  defp process_outbox_messages([]), do: 0
-
-  defp process_outbox_messages(records) when is_list(records) do
-    record_ids =
-      Enum.map(records, fn %OutboxMessage{} = record ->
-        :ok =
-          OutboxMessage.to_serialized_message(record)
-          |> amqp_publish_message(@exchange_name)
-
-        record.id
-      end)
-
-    {num_records, nil} =
-      Ecto.Query.from(o in OutboxMessage, where: o.id in ^record_ids)
-      |> Repo.delete_all()
-
-    num_records
+  @spec process_outbox_messages!([OutboxMessage.t()]) :: :ok
+  defp process_outbox_messages!(records) when is_list(records) do
+    Enum.each(records, fn %OutboxMessage{} = record ->
+      :ok =
+        OutboxMessage.to_serialized_message(record)
+        |> amqp_publish_message(@exchange_name)
+    end)
   end
 
   @doc """
